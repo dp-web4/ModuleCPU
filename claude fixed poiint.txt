@@ -1,0 +1,33 @@
+#define FIXED_POINT_SCALE 1024  // 2^10, gives us 10 bits of fractional precision
+
+// Pre-calculate these constants:
+#define VOLTAGE_CONVERSION_FACTOR ((uint32_t)((CELL_VREF * 1000.0 / CELL_VOLTAGE_SCALE * CELL_VOLTAGE_CAL * FIXED_POINT_SCALE) + 0.5))
+#define ADC_MAX_VALUE (1 << CELL_VOLTAGE_BITS)
+
+// In CellDataConvert:
+uint32_t temp = (uint32_t)u16Voltage * VOLTAGE_CONVERSION_FACTOR;
+u16Voltage = (uint16_t)((temp / ADC_MAX_VALUE + FIXED_POINT_SCALE/2) / FIXED_POINT_SCALE);
+
+
+
+// Replace:
+fCurrent = ((float) s32Current / (float) (1 << ADC_BITS));
+fCurrent *= MAX_CURRENT_PEAK;
+
+// With:
+#define CURRENT_CONVERSION_FACTOR ((uint32_t)((MAX_CURRENT_PEAK * FIXED_POINT_SCALE) / (1 << ADC_BITS) + 0.5))
+
+int32_t iCurrent = (s32Current * CURRENT_CONVERSION_FACTOR + FIXED_POINT_SCALE/2) / FIXED_POINT_SCALE;
+
+// Then use iCurrent instead of fCurrent in subsequent calculations
+
+
+
+// Replace:
+temperature = (adc_value - 324.31) / 1.22;
+
+// With:
+#define TEMP_OFFSET 32431  // 324.31 * 100
+#define TEMP_SCALE 122    // 1.22 * 100
+
+int16_t temperature = ((int32_t)(adc_value * 100 - TEMP_OFFSET) * 100 / TEMP_SCALE);
