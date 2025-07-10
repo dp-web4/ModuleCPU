@@ -188,7 +188,7 @@ static uint8_t sg_u8CurrentBufferIndex;
 // read the status of FET EN on PC1 (inverted!)
 // an overtemp or overcurrent will drive /CLR and cause PC1 to go high, so a rising edge interrupt can be used to detect these events
 
-#define FET_EN_CONFIGURE()					PORTC &= ~  ((uint8_t) (1 << PIN_FET_EN)); DDRC |= ((uint8_t) (1 << PIN_FET_EN)); DDRC &= ~ ((uint8_t) (1 << PIN_OCF_N)) // set FET_EN as output and low, OCF_N as input
+#define FET_EN_CONFIGURE()					PORTC &= ~  ((uint8_t) (1 << PIN_FET_EN)); DDRC |= ((uint8_t) (1 << PIN_FET_EN)); DDRC &= ~ ((uint8_t) (1 << PIN_OCF_N)); DDRC |= ((uint8_t) (1 << PIN_FET_CK)) // set FET_EN as output and low, OCF_N as input, FET_CK as output
 #define FET_EN_ASSERT()						PORTC |= ((uint8_t) (1 << PIN_FET_EN)); PORTC &= ~ ((uint8_t) (1 << PIN_FET_CK)); PORTC |= ((uint8_t) (1 << PIN_FET_CK))  // set  FET_EN high, then drive flipflop clock low then high
 #define FET_EN_DEASSERT()					PORTC &= ~  ((uint8_t) (1 << PIN_FET_EN)) // asynchronously clear the flipflop
 #define FET_ASSERTED()						~(PINC & ((uint8_t) (1 << PIN_OCF_N)))  // pin is inverted
@@ -212,6 +212,9 @@ volatile static bool __attribute__((section(".noinit"))) sg_bModuleRegistered;		
 
 volatile static bool __attribute__((section(".noinit"))) sg_bSendTimeRequest;			// true If we want to send a "set time" command to the pack controller
 volatile static bool __attribute__((section(".noinit"))) sg_bPackControllerTimeout;		// true If we've not heard from a pack controller in PACK_CONTROLLER_TIMEOUT_MS
+
+// Cached unique ID to avoid repeated EEPROM reads during message formation
+static uint32_t __attribute__((section(".noinit"))) sg_u32ModuleUniqueID;
 
 volatile static bool __attribute__((section(".noinit"))) sg_bSendModuleControllerStatus;
 volatile static bool __attribute__((section(".noinit"))) sg_bSendCellStatus;
@@ -788,11 +791,12 @@ static void ModuleControllerStateHandle( void )
 {
 	EModuleControllerState eNext = sg_eModuleControllerStateTarget;
 	
+#ifndef STATE_CYCLE	
 	if ((eNext > sg_eModuleControllerStateMax) || (sg_eModuleControllerStateCurrent > sg_eModuleControllerStateMax) )  // technically should not occur but just in case
 	{
 		eNext = sg_eModuleControllerStateMax;
 	}
-	
+#endif	
 	// see if we need to transition
 	if ( eNext != sg_eModuleControllerStateCurrent)
 	{
@@ -1059,7 +1063,7 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			// If the qualifiers match what was sent in the announcement, this is for us
 			if( (MANUFACTURE_ID == pu8Data[2]) &&
 				(PART_ID == pu8Data[3]) &&
-				(ModuleControllerGetUniqueID() == *((uint32_t *) &pu8Data[4])) )
+				(sg_u32ModuleUniqueID == *((uint32_t *) &pu8Data[4])) )
 			{
 				sg_u8TicksSinceLastPackControllerMessage = 0;
 				
@@ -2133,6 +2137,7 @@ int main(void)
 #else
 		sg_bSDCardReady = false;  
 		sg_eStateCycle = EMODSTATE_OFF;
+		sg_u8StateCounter = 0;
 #endif
 	
 		// Set how many cells we're expecting	
@@ -2143,6 +2148,9 @@ int main(void)
 		// And how many sequential incorrect cell count until we reset the
 		// chain?
 		sg_u8SequentailCountMismatchThreshold = EEPROMRead(EEPROM_SEQUENTIAL_COUNT_MISMATCH);
+
+		// Cache the unique ID from EEPROM to avoid repeated reads during message formation
+		sg_u32ModuleUniqueID = ModuleControllerGetUniqueID();
 
 		// Set 5V DET as input
 		DDR_5V_DET &= (uint8_t) ~(1 << PIN_5V_DET);
@@ -2202,29 +2210,8 @@ int main(void)
 			else
 			{
 				sg_bSendAnnouncement = true;
+				//will be sent at start of write frame
 			}
-			// Send a module announcement if unregistered
-		
-			if( sg_bSendAnnouncement )
-			{
-				bool bSent;
-
-				// Reply with general status
-				u8Reply[0] = (uint8_t) FW_BUILD_NUMBER;
-				u8Reply[1] = (uint8_t) (FW_BUILD_NUMBER >> 8);
-				u8Reply[2] = MANUFACTURE_ID;
-				u8Reply[3] = PART_ID;
-				*((uint32_t*)&u8Reply[4]) = ModuleControllerGetUniqueID();
-			
-				bSent = CANSendMessage( ECANMessageType_ModuleAnnouncement, u8Reply, CAN_STATUS_RESPONSE_SIZE );
-
-				if( bSent )
-				{
-					sg_bSendAnnouncement = false;
-				}
-			}
-			// Only send the announcement if the module isn't registered
-			// disable can interrupts as they seem to result in misreading of status
 
 
 		
@@ -2296,8 +2283,32 @@ int main(void)
 							sg_u8SequentailCellCountMismatches = 0;
 						}
 					}
+					
+					if( sg_bSendAnnouncement )  //we should announce ourselves
+					{
+						bool bSent;
+
+						// Reply with general status
+						u8Reply[0] = (uint8_t) FW_BUILD_NUMBER;
+						u8Reply[1] = (uint8_t) (FW_BUILD_NUMBER >> 8);
+						u8Reply[2] = MANUFACTURE_ID;
+						u8Reply[3] = PART_ID;
+						*((uint32_t*)&u8Reply[4]) = sg_u32ModuleUniqueID;
+			
+						bSent = CANSendMessage( ECANMessageType_ModuleAnnouncement, u8Reply, CAN_STATUS_RESPONSE_SIZE );
+
+						if( bSent )
+						{
+							sg_bSendAnnouncement = false;
+						}
+					// Send a module announcement if unregistered
+		
+					}
+					// Only send the announcement if the module isn't registered
+					// disable can interrupts as they seem to result in misreading of status
+					
 	
-				}
+				}  //end of write frame start code
 			
 				// the following is done continuously while in WRITE frame
 
@@ -2313,24 +2324,27 @@ int main(void)
 
 
 				// This code will cycle through all of the states once every
-				// STATE_CYCLE_INTERVAL seconds
-	#ifdef STATE_CYCLE			
-				sg_u8StateCounter++;
-				if (sg_u8StateCounter >= STATE_CYCLE_INTERVAL)
+				// STATE_CYCLE_INTERVAL frames
+	#ifdef STATE_CYCLE
+				if(bFrameStart) // Only increment once per frame, not continuously
 				{
-					sg_u8StateCounter = 0;
-
-					if (sg_eStateCycle >= EMODSTATE_ON)
+					sg_u8StateCounter++;
+					if (sg_u8StateCounter >= STATE_CYCLE_INTERVAL)
 					{
-						sg_eStateCycle = EMODSTATE_OFF;  //turn off sequence and delays handled by state handler
+						sg_u8StateCounter = 0;
+
+						if (sg_eStateCycle >= EMODSTATE_ON)
+						{
+							sg_eStateCycle = EMODSTATE_OFF;  //turn off sequence and delays handled by state handler
+						}
+						else
+						{
+							sg_eStateCycle++;
+						} 
+
+						// Now set the new state
+						ModuleControllerStateSet(sg_eStateCycle);
 					}
-					else
-					{
-						sg_eStateCycle++;
-					} 
-
-					// Now set the new state
-					ModuleControllerStateSet(sg_eStateCycle);
 				}
 	#endif
 		
