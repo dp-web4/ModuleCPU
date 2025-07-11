@@ -1189,7 +1189,7 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 					uint8_t u8RandomDelay = (uint8_t)((sg_u32ModuleUniqueID ^ (sg_u32ModuleUniqueID >> 8) ^ 
 					                                   (sg_u32ModuleUniqueID >> 16) ^ (sg_u32ModuleUniqueID >> 24)) % 100);
 					
-					DebugPrintf("RX Announce Request - delaying %dms before response\r\n", u8RandomDelay);
+					DebugOut("RX Announce Request - delaying %dms before response\r\n", u8RandomDelay);
 					
 					// Convert to microseconds and add minimum delay
 					uint32_t u32DelayMicros = (uint32_t)u8RandomDelay * 1000;
