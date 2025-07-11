@@ -19,6 +19,7 @@ typedef enum
 	ECANMessageType_ModuleStatusRequest,
 	ECANMessageType_ModuleCellDetailRequest,
 	ECANMessageType_ModuleStateChangeRequest,
+	ECANMessageType_ModuleAnnounceRequest,
 	ECANMessageType_AllDeRegister,
 	ECANMessageType_AllIsolate,
 	ECANMessageType_SetTime,

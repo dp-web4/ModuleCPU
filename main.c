@@ -1179,6 +1179,28 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 				// Set time! From pack controller
 				RTCSetTime(*((uint64_t *) pu8Data));
 			}
+			else if( ECANMessageType_ModuleAnnounceRequest == eType )
+			{
+				// Pack controller is requesting announcements from unregistered modules
+				if (!sg_bModuleRegistered)
+				{
+					// Calculate pseudo-random delay based on unique ID (0-100ms)
+					// Mix different bits of unique ID for better distribution
+					uint8_t u8RandomDelay = (uint8_t)((sg_u32ModuleUniqueID ^ (sg_u32ModuleUniqueID >> 8) ^ 
+					                                   (sg_u32ModuleUniqueID >> 16) ^ (sg_u32ModuleUniqueID >> 24)) % 100);
+					
+					DebugPrintf("RX Announce Request - delaying %dms before response\r\n", u8RandomDelay);
+					
+					// Convert to microseconds and add minimum delay
+					uint32_t u32DelayMicros = (uint32_t)u8RandomDelay * 1000;
+					
+					// Wait the random delay to avoid collisions
+					Delay(u32DelayMicros);
+					
+					// Now send our announcement
+					sg_bSendAnnouncement = true;
+				}
+			}
 		}
 	}
 }
