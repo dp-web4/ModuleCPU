@@ -874,7 +874,14 @@ static void ModuleControllerStateHandle( void )
 				PCICR &= (uint8_t) ~(1 << PCIE1);			// Bank C interrupt disable
 
 				// Turn on the relay (does nothing when transiting to off)
+#ifdef STATE_CYCLE
 				RELAY_EN_ASSERT();
+#else
+				// Safety check: only enable relay if module is registered
+				if (sg_bModuleRegistered) {
+					RELAY_EN_ASSERT();
+				}
+#endif
 				Delay((uint32_t) 5* (uint32_t) 1000); //must be shorter than WDT_LEASH_SHORT
 				// made it!
 
@@ -902,7 +909,14 @@ static void ModuleControllerStateHandle( void )
 				{					
 					WDTSetLeash(WDT_LEASH_SHORT,EWDT_MECH_RLY_ON);
 					// Turn on the relay 
+#ifdef STATE_CYCLE
 					RELAY_EN_ASSERT();
+#else
+					// Safety check: only enable relay if module is registered
+					if (sg_bModuleRegistered) {
+						RELAY_EN_ASSERT();
+					}
+#endif
 					// Give the relay time to settle so no power is applied
 					Delay((uint32_t) 5* (uint32_t) 1000);  //must be shorter than WDT_LEASH_SHORT
 					// made it!
@@ -913,7 +927,14 @@ static void ModuleControllerStateHandle( void )
 				{
 					WDTSetLeash(WDT_LEASH_SHORT,EWDT_FET_ON);
 
+#ifdef STATE_CYCLE
 					FET_EN_ASSERT();
+#else
+					// Safety check: only enable FET if module is registered
+					if (sg_bModuleRegistered) {
+						FET_EN_ASSERT();
+					}
+#endif
 					Delay((uint32_t) 1 * (uint32_t) 1000); // short pulses to save FET! - there is 5uS overhead so 5 will give 10
 					FET_EN_DEASSERT();
 
@@ -942,7 +963,14 @@ static void ModuleControllerStateHandle( void )
 				{
 					WDTSetLeash(WDT_LEASH_SHORT,EWDT_MECH_RLY_ON);
 					// Turn on the relay
+#ifdef STATE_CYCLE
 					RELAY_EN_ASSERT();
+#else
+					// Safety check: only enable relay if module is registered
+					if (sg_bModuleRegistered) {
+						RELAY_EN_ASSERT();
+					}
+#endif
 					// Give the relay time to settle so no power is applied
 					Delay((uint32_t) 5* (uint32_t) 1000);  //must be shorter than WDT_LEASH_SHORT
 					// made it!
@@ -950,7 +978,14 @@ static void ModuleControllerStateHandle( void )
 				
 				WDTSetLeash(WDT_LEASH_SHORT,EWDT_FET_ON);
 
+#ifdef STATE_CYCLE
 				FET_EN_ASSERT();  //overcurrent will set flag AND transition to STANDBY
+#else
+				// Safety check: only enable FET if module is registered
+				if (sg_bModuleRegistered) {
+					FET_EN_ASSERT();  //overcurrent will set flag AND transition to STANDBY
+				}
+#endif
 				Delay((uint32_t) 5* (uint32_t) 1000); //must be shorter than WDT_LEASH_SHORT
 				// made it!
 				WDTSetLeash(WDT_LEASH_LONG,EWDT_NORMAL);  
@@ -2202,6 +2237,8 @@ int main(void)
 	
 		sg_eModuleControllerStateCurrent = EMODSTATE_INIT;
 		sg_eModuleControllerStateTarget = STATE_DEFAULT;
+		sg_eModuleControllerStateMax = EMODSTATE_OFF;  // Initialize to OFF to prevent relay turning on at startup
+		sg_bModuleRegistered = false;  // Initialize to false to prevent relay/FET activation without registration
 		WDTSetLeash(WDT_LEASH_LONG, EWDT_NORMAL);  // set on long leash
 		sg_eFrameStatus = EFRAMETYPE_WRITE; // start on a write so that housekeeping gets done
 	}

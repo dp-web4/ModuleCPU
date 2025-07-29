@@ -37,3 +37,19 @@ Module-level coordination (ATmega64M1) managing:
 
 ## Design Philosophy
 ModuleCPU embodies "middle management" - aggregating cell data while maintaining their autonomy, and reporting to the pack level without exposing cell-level details. This mirrors Synchronism's principle of scale-specific Markov blankets.
+
+## Recent Safety Improvements (July 29, 2025)
+
+### Startup Safety Fixes
+1. **Fixed uninitialized `sg_eModuleControllerStateMax`**: This variable in `.noinit` section was not initialized on power-on, potentially allowing unwanted state transitions. Now initialized to `EMODSTATE_OFF`.
+
+2. **Fixed uninitialized `sg_bModuleRegistered`**: This flag in `.noinit` section could retain `true` from previous runs. Now explicitly initialized to `false` on power-on.
+
+3. **Added registration checks for relay/FET control**: All `RELAY_EN_ASSERT()` and `FET_EN_ASSERT()` calls now check `sg_bModuleRegistered` (bypassed when `STATE_CYCLE` is defined for testing).
+
+These fixes prevent the module from briefly turning on relays at startup - a critical safety improvement.
+
+### Pack Controller Integration
+- Successfully integrated with Pack-Controller-EEPROM project
+- Fixed various CAN message definitions and debug system
+- Module announcement and registration working properly
