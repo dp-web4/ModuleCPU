@@ -1,5 +1,11 @@
 # Claude Context for ModuleCPU
 
+## Private Context Access
+- **Private Context**: `/mnt/c/projects/ai-agents/private-context/`
+- **Machine Info**: `/mnt/c/projects/ai-agents/private-context/machines/windows11-laptop.md`
+- **GitHub PAT**: Available in `/mnt/c/projects/ai-agents/.env`
+- **Note**: Cannot cd to parent directory but can access these paths directly
+
 ## Project Context System
 
 **IMPORTANT**: A comprehensive context system exists at `/mnt/c/projects/ai-agents/misc/context-system/`
