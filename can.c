@@ -172,6 +172,7 @@ static const SCANCmdReg sg_sRXCommandList[] =
 	{PKT_MODULE_STATUS_REQUEST, ECANMessageType_ModuleStatusRequest},
 	{PKT_MODULE_HARDWARE_REQUEST, ECANMessageType_ModuleHardwareDetail},
 	{PKT_MODULE_ANNOUNCE_REQUEST, ECANMessageType_ModuleAnnounceRequest},
+	{PKT_MODULE_DEREGISTER,     ECANMessageType_ModuleDeRegister},
 	{PKT_MODULE_ALL_DEREGISTER, ECANMessageType_AllDeRegister},
 	{PKT_MODULE_ALL_ISOLATE,	ECANMessageType_AllIsolate},
 	{PKT_MODULE_SET_TIME,		ECANMessageType_SetTime},

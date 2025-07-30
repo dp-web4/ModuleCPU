@@ -209,17 +209,20 @@ volatile static uint8_t __attribute__((section(".noinit"))) sg_u8CellStatus;
 
 volatile static bool __attribute__((section(".noinit"))) sg_bSendAnnouncement;			// true If we're sending a module announcement to the pack controller
 volatile static bool __attribute__((section(".noinit"))) sg_bModuleRegistered;			// true If we've received a registration ID from the pack controller
+volatile static bool sg_bAnnouncementPending = false;	// true if we need to send announcement after delay
+volatile static uint8_t sg_u8AnnouncementDelayTicks = 0;	// ticks remaining before sending announcement
 
 volatile static bool __attribute__((section(".noinit"))) sg_bSendTimeRequest;			// true If we want to send a "set time" command to the pack controller
 volatile static bool __attribute__((section(".noinit"))) sg_bPackControllerTimeout;		// true If we've not heard from a pack controller in PACK_CONTROLLER_TIMEOUT_MS
 
 // Cached unique ID to avoid repeated EEPROM reads during message formation
-static uint32_t __attribute__((section(".noinit"))) sg_u32ModuleUniqueID;
+// Module unique ID now stored directly in sg_sFrame.moduleUniqueId
 
 volatile static bool __attribute__((section(".noinit"))) sg_bSendModuleControllerStatus;
 volatile static bool __attribute__((section(".noinit"))) sg_bSendCellStatus;
 volatile static bool __attribute__((section(".noinit"))) sg_bSendHardwareDetail;
 volatile static bool __attribute__((section(".noinit"))) sg_bSendCellCommStatus;
+static bool sg_bIgnoreStatusRequests = false;  // Ignore new requests while sending
 volatile static bool __attribute__((section(".noinit"))) sg_bCellBalanceReady;
 volatile static bool __attribute__((section(".noinit"))) sg_bCellBalancedOnce;
 volatile static bool __attribute__((section(".noinit"))) sg_bStopDischarge;
@@ -550,6 +553,7 @@ static void SendModuleControllerStatus(void)
 {
 	sg_bSendModuleControllerStatus = true;
 	sg_u8ControllerStatusMsgCount = 0;
+	sg_bIgnoreStatusRequests = true;  // Start ignoring new requests
 }
 
 typedef enum
@@ -1098,7 +1102,7 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			// If the qualifiers match what was sent in the announcement, this is for us
 			if( (MANUFACTURE_ID == pu8Data[2]) &&
 				(PART_ID == pu8Data[3]) &&
-				(sg_u32ModuleUniqueID == *((uint32_t *) &pu8Data[4])) )
+				(sg_sFrame.moduleUniqueId == *((uint32_t *) &pu8Data[4])) )
 			{
 				sg_u8TicksSinceLastPackControllerMessage = 0;
 				
@@ -1114,6 +1118,12 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 				
 				// Indicate our module controller is registered
 				sg_bModuleRegistered = true;
+				
+				DebugOut("RX Registration - Module ID=%02x registered successfully\r\n", u8RegID);
+				
+				// Cancel any pending announcement since we're now registered
+				sg_bAnnouncementPending = false;
+				sg_u8AnnouncementDelayTicks = 0;
 				
 				// And that we send a time request
 				sg_bSendTimeRequest = true;
@@ -1140,7 +1150,8 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			}
 				
 			// Handle commands that are only valid when registered
-			if ((bIsRegistered)  &&
+			// Note: For status requests, we re-check sg_bModuleRegistered in case we just got registered
+			if ((bIsRegistered || (ECANMessageType_ModuleStatusRequest == eType && sg_bModuleRegistered)) &&
 				(u8RegID == sg_u8ModuleRegistrationID))
 			{
 				// Since this message is for us, now check the type and length
@@ -1148,7 +1159,11 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 				{
 					if( 1 == u8DataLen )
 					{
-						SendModuleControllerStatus();
+						if (!sg_bIgnoreStatusRequests) {
+							DebugOut("RX Status Request - sending status\r\n");
+							SendModuleControllerStatus();
+						}
+						// else silently ignore - we're already sending
 					}
 				}
 			
@@ -1191,15 +1206,26 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 					// For hardware detail, the payload is irrelevant.
 					sg_bSendHardwareDetail = true;
 				}
+				else if( ECANMessageType_ModuleDeRegister == eType )
+				{
+					// Individual deregister for this module
+					DebugOut("RX Individual De-Register - module ID=%02x deregistered\r\n", u8RegID);
+					sg_u8ModuleRegistrationID = 0;
+					sg_bModuleRegistered = false;
+					sg_bIgnoreStatusRequests = false;  // Reset all status flags
+					ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
+				}
 			}
 			
 			// Handle commands that are global broadcasts and don't require 
 			// registration
-			if( ECANMessageType_AllDeRegister == eType )
+			else if( ECANMessageType_AllDeRegister == eType )
 			{
 				// Deregister this module
+				DebugOut("RX All De-Register - module deregistered\r\n");
 				sg_u8ModuleRegistrationID = 0;
 				sg_bModuleRegistered = false;
+				sg_bIgnoreStatusRequests = false;  // Reset all status flags
 				ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
 			}
 			else if( ECANMessageType_AllIsolate == eType )
@@ -1217,23 +1243,28 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			else if( ECANMessageType_ModuleAnnounceRequest == eType )
 			{
 				// Pack controller is requesting announcements from unregistered modules
-				if (!sg_bModuleRegistered)
+				if (!sg_bModuleRegistered && !sg_bAnnouncementPending)
 				{
-					// Calculate pseudo-random delay based on unique ID (0-100ms)
-					// Mix different bits of unique ID for better distribution
-					uint8_t u8RandomDelay = (uint8_t)((sg_u32ModuleUniqueID ^ (sg_u32ModuleUniqueID >> 8) ^ 
-					                                   (sg_u32ModuleUniqueID >> 16) ^ (sg_u32ModuleUniqueID >> 24)) % 100);
+					// Use last byte of unique ID as delay in milliseconds (0-255ms)
+					// This saves computation and works well for sequential IDs
+					uint8_t u8RandomDelay = (uint8_t)(sg_sFrame.moduleUniqueId & 0xFF);
 					
-					DebugOut("RX Announce Request - delaying %dms before response\r\n", u8RandomDelay);
+					DebugOut("RX Announce Request (UNREGISTERED) - scheduling response in %dms\r\n", u8RandomDelay);
 					
-					// Convert to microseconds and add minimum delay
-					uint32_t u32DelayMicros = (uint32_t)u8RandomDelay * 1000;
-					
-					// Wait the random delay to avoid collisions
-					Delay(u32DelayMicros);
-					
-					// Now send our announcement
-					sg_bSendAnnouncement = true;
+					// Schedule announcement after delay (assuming 10ms ticks)
+					sg_u8AnnouncementDelayTicks = u8RandomDelay / 10;  // Convert to 10ms ticks
+					if (sg_u8AnnouncementDelayTicks == 0) sg_u8AnnouncementDelayTicks = 1;  // Minimum 1 tick delay
+					sg_bAnnouncementPending = true;
+				}
+				else if (sg_bModuleRegistered)
+				{
+					// We're registered, ignore announce requests
+					DebugOut("RX Announce Request (REGISTERED) - ignoring\r\n");
+				}
+				else
+				{
+					// Announcement already pending, ignore duplicate request
+					DebugOut("RX Announce Request - already pending\r\n");
 				}
 			}
 		}
@@ -1791,6 +1822,7 @@ if(0)
 				// Stop status state machine
 				sg_u8ControllerStatusMsgCount = 0;
 				sg_bSendModuleControllerStatus = false;
+				sg_bIgnoreStatusRequests = false;  // Allow new requests again
 				
 				// Send the comms status
 				sg_bSendCellCommStatus = true;
@@ -2082,6 +2114,7 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 			memset(&sg_sFrame,0,sizeof(sg_sFrame)); // set all to 0
 			sg_sFrame.frameBytes = sizeof(sg_sFrame);
 			sg_sFrame.validSig = FRAME_VALID_SIG;
+			sg_sFrame.moduleUniqueId = ModuleControllerGetUniqueID();
 			sg_sFrame.sg_u8CellFirstI2CError = 0xff;
 			sg_sFrame.sg_u8CellCPUCountFewest = 0xff;
 			CellCountExpectedSet(EEPROMRead(EEPROM_EXPECTED_CELL_COUNT));
@@ -2207,7 +2240,6 @@ int main(void)
 		sg_u8SequentailCountMismatchThreshold = EEPROMRead(EEPROM_SEQUENTIAL_COUNT_MISMATCH);
 
 		// Cache the unique ID from EEPROM to avoid repeated reads during message formation
-		sg_u32ModuleUniqueID = ModuleControllerGetUniqueID();
 
 		// Set 5V DET as input
 		DDR_5V_DET &= (uint8_t) ~(1 << PIN_5V_DET);
@@ -2255,21 +2287,31 @@ int main(void)
 			sg_bNewTick = false;  // set tru in periodic tick isr, cleared in main loop
 			uint8_t u8Reply[CAN_STATUS_RESPONSE_SIZE];
 
-// 			uint8_t savedCANGIE = CANGIE;  // these are used to temporarily disable CAN ints 
-// 			CANGIE &= ~(1<< ENIT);
-//			bool bIsRegistered = sg_bModuleRegistered;
-// 			CANGIE = savedCANGIE;
-		
-			// Only consider sending statuses if we have a valid registration ID
-			if( sg_bModuleRegistered )
+			// Clear separation of registered vs unregistered behavior
+			if (!sg_bModuleRegistered)
 			{
-				// Send controller status messages
-				ControllerStatusMessagesSend(u8Reply);
+				// Not registered - handle announcement delays
+				if (sg_bAnnouncementPending)
+				{
+					if (sg_u8AnnouncementDelayTicks > 0)
+					{
+						sg_u8AnnouncementDelayTicks--;
+					}
+					
+					if (sg_u8AnnouncementDelayTicks == 0)
+					{
+						// Time to send the announcement
+						sg_bSendAnnouncement = true;
+						sg_bAnnouncementPending = false;
+						DebugOut("Announcement delay complete - sending\r\n");
+					}
+				}
 			}
 			else
 			{
-				sg_bSendAnnouncement = true;
-				//will be sent at start of write frame
+				// Registered - handle normal operations
+				// Send controller status messages
+				ControllerStatusMessagesSend(u8Reply);
 			}
 
 
@@ -2283,6 +2325,7 @@ int main(void)
 // 				savedCANGIE = CANGIE;  // these are used to temporarily disable CAN ints
 // 				CANGIE &= ~(1<< ENIT);
 				sg_bModuleRegistered = false;
+				sg_bIgnoreStatusRequests = false;  // Reset all status flags
 // 				CANGIE = savedCANGIE;			
 			
 				sg_bSendAnnouncement = true;			// Send an announcement to hasten registration
@@ -2352,7 +2395,7 @@ int main(void)
 						u8Reply[1] = (uint8_t) (FW_BUILD_NUMBER >> 8);
 						u8Reply[2] = MANUFACTURE_ID;
 						u8Reply[3] = PART_ID;
-						*((uint32_t*)&u8Reply[4]) = sg_u32ModuleUniqueID;
+						*((uint32_t*)&u8Reply[4]) = sg_sFrame.moduleUniqueId;
 			
 						bSent = CANSendMessage( ECANMessageType_ModuleAnnouncement, u8Reply, CAN_STATUS_RESPONSE_SIZE );
 
