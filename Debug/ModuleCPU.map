@@ -130,7 +130,7 @@ Discarded input sections
  .data          0x0000000000000000        0x0 STORE.o
  .bss           0x0000000000000000        0x0 STORE.o
  .text.STORE_GetSessionInfo
-                0x0000000000000000      0x180 STORE.o
+                0x0000000000000000      0x190 STORE.o
  .text          0x0000000000000000        0x0 vUART.o
  .data          0x0000000000000000        0x0 vUART.o
  .bss           0x0000000000000000        0x0 vUART.o
@@ -741,6 +741,7 @@ END GROUP
  *(.dinit)
  .dinit         0x000000000000007c        0xa data_init
                 0x0000000000000086                . = ALIGN (0x2)
+ *fill*         0x0000000000000086        0x0 
                 0x0000000000000086                __trampolines_start = .
  *(.trampolines)
  .trampolines   0x0000000000000086        0x0 linker stubs
@@ -831,13 +832,13 @@ END GROUP
                 0x00000000000000da                __data_load_start = LOADADDR (.data)
                 0x00000000000000da                __data_load_end = (__data_load_start + SIZEOF (.data))
 
-.noinit         0x0000000000800102      0x222
+.noinit         0x0000000000800102      0x226
                 [!provide]                        PROVIDE (__noinit_start, .)
  *(.noinit*)
  *fill*         0x0000000000800102        0x2 
- .noinit        0x0000000000800104      0x220 main.o
+ .noinit        0x0000000000800104      0x224 main.o
                 [!provide]                        PROVIDE (__noinit_end, .)
-                0x0000000000800324                _end = .
+                0x0000000000800328                _end = .
 
 .eeprom         0x0000000000810000        0x0
  *(.eeprom*)
@@ -1022,20 +1023,20 @@ END GROUP
 .debug_pubnames
  *(.debug_pubnames)
 
-.debug_info     0x0000000000000000     0x8c71
+.debug_info     0x0000000000000000     0x8dff
  *(.debug_info .gnu.linkonce.wi.*)
  .debug_info    0x0000000000000000      0xa40 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/xc8/avr/lib/avr5/memx-const/crtatmega64m1.o
- .debug_info    0x0000000000000a40      0x4d9 adc.o
- .debug_info    0x0000000000000f19      0xf3d can.o
- .debug_info    0x0000000000001e56      0x284 debugSerial.o
- .debug_info    0x00000000000020da      0x2b7 EEPROM.o
- .debug_info    0x0000000000002391      0x4fe I2c.o
- .debug_info    0x000000000000288f     0x2b86 main.o
- .debug_info    0x0000000000005415      0xe0a rtc_mcp7940n.o
- .debug_info    0x000000000000621f     0x1100 SD.o
- .debug_info    0x000000000000731f      0x3e3 SPI.o
- .debug_info    0x0000000000007702      0xe90 STORE.o
- .debug_info    0x0000000000008592      0x6df vUART.o
+ .debug_info    0x0000000000000a40      0x4c9 adc.o
+ .debug_info    0x0000000000000f09      0xf8f can.o
+ .debug_info    0x0000000000001e98      0x284 debugSerial.o
+ .debug_info    0x000000000000211c      0x2b7 EEPROM.o
+ .debug_info    0x00000000000023d3      0x4fe I2c.o
+ .debug_info    0x00000000000028d1     0x2cc9 main.o
+ .debug_info    0x000000000000559a      0xe0a rtc_mcp7940n.o
+ .debug_info    0x00000000000063a4     0x1100 SD.o
+ .debug_info    0x00000000000074a4      0x3e3 SPI.o
+ .debug_info    0x0000000000007887      0xe99 STORE.o
+ .debug_info    0x0000000000008720      0x6df vUART.o
 
 .debug_abbrev   0x0000000000000000     0x1aa4
  *(.debug_abbrev)
@@ -1052,34 +1053,34 @@ END GROUP
  .debug_abbrev  0x0000000000001776      0x1ba STORE.o
  .debug_abbrev  0x0000000000001930      0x174 vUART.o
 
-.debug_line     0x0000000000000000     0x3633
+.debug_line     0x0000000000000000     0x378d
  *(.debug_line .debug_line.* .debug_line_end)
  .debug_line    0x0000000000000000      0x154 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/xc8/avr/lib/avr5/memx-const/crtatmega64m1.o
  .debug_line    0x0000000000000154      0x203 adc.o
- .debug_line    0x0000000000000357      0x592 can.o
- .debug_line    0x00000000000008e9       0x47 debugSerial.o
- .debug_line    0x0000000000000930       0xd7 EEPROM.o
- .debug_line    0x0000000000000a07      0x2fc I2c.o
- .debug_line    0x0000000000000d03     0x14af main.o
- .debug_line    0x00000000000021b2      0x653 rtc_mcp7940n.o
- .debug_line    0x0000000000002805      0x613 SD.o
- .debug_line    0x0000000000002e18      0x175 SPI.o
- .debug_line    0x0000000000002f8d      0x2ce STORE.o
- .debug_line    0x000000000000325b      0x3d8 vUART.o
+ .debug_line    0x0000000000000357      0x59e can.o
+ .debug_line    0x00000000000008f5       0x47 debugSerial.o
+ .debug_line    0x000000000000093c       0xd7 EEPROM.o
+ .debug_line    0x0000000000000a13      0x2fc I2c.o
+ .debug_line    0x0000000000000d0f     0x15d3 main.o
+ .debug_line    0x00000000000022e2      0x653 rtc_mcp7940n.o
+ .debug_line    0x0000000000002935      0x613 SD.o
+ .debug_line    0x0000000000002f48      0x175 SPI.o
+ .debug_line    0x00000000000030bd      0x2f8 STORE.o
+ .debug_line    0x00000000000033b5      0x3d8 vUART.o
 
-.debug_frame    0x0000000000000000     0x11d8
+.debug_frame    0x0000000000000000     0x1250
  *(.debug_frame)
  .debug_frame   0x0000000000000000       0xb4 adc.o
- .debug_frame   0x00000000000000b4      0x198 can.o
- .debug_frame   0x000000000000024c       0x34 debugSerial.o
- .debug_frame   0x0000000000000280       0x34 EEPROM.o
- .debug_frame   0x00000000000002b4       0xc4 I2c.o
- .debug_frame   0x0000000000000378      0x688 main.o
- .debug_frame   0x0000000000000a00      0x1dc rtc_mcp7940n.o
- .debug_frame   0x0000000000000bdc      0x2c4 SD.o
- .debug_frame   0x0000000000000ea0       0x58 SPI.o
- .debug_frame   0x0000000000000ef8      0x180 STORE.o
- .debug_frame   0x0000000000001078      0x160 vUART.o
+ .debug_frame   0x00000000000000b4      0x1a0 can.o
+ .debug_frame   0x0000000000000254       0x34 debugSerial.o
+ .debug_frame   0x0000000000000288       0x34 EEPROM.o
+ .debug_frame   0x00000000000002bc       0xc4 I2c.o
+ .debug_frame   0x0000000000000380      0x6f8 main.o
+ .debug_frame   0x0000000000000a78      0x1dc rtc_mcp7940n.o
+ .debug_frame   0x0000000000000c54      0x2c4 SD.o
+ .debug_frame   0x0000000000000f18       0x58 SPI.o
+ .debug_frame   0x0000000000000f70      0x180 STORE.o
+ .debug_frame   0x00000000000010f0      0x160 vUART.o
 
 .debug_str      0x0000000000000000      0x700
  *(.debug_str)
@@ -1096,19 +1097,19 @@ END GROUP
  .debug_str     0x00000000000006bf       0x14 STORE.o
  .debug_str     0x00000000000006d3       0x2d vUART.o
 
-.debug_loc      0x0000000000000000     0x43f0
+.debug_loc      0x0000000000000000     0x45f9
  *(.debug_loc)
  .debug_loc     0x0000000000000000      0x18f adc.o
- .debug_loc     0x000000000000018f      0x730 can.o
- .debug_loc     0x00000000000008bf       0x3b debugSerial.o
- .debug_loc     0x00000000000008fa       0x58 EEPROM.o
- .debug_loc     0x0000000000000952      0x223 I2c.o
- .debug_loc     0x0000000000000b75     0x1606 main.o
- .debug_loc     0x000000000000217b      0xa42 rtc_mcp7940n.o
- .debug_loc     0x0000000000002bbd      0xee4 SD.o
- .debug_loc     0x0000000000003aa1      0x23a SPI.o
- .debug_loc     0x0000000000003cdb      0x4a5 STORE.o
- .debug_loc     0x0000000000004180      0x270 vUART.o
+ .debug_loc     0x000000000000018f      0x75c can.o
+ .debug_loc     0x00000000000008eb       0x3b debugSerial.o
+ .debug_loc     0x0000000000000926       0x58 EEPROM.o
+ .debug_loc     0x000000000000097e      0x223 I2c.o
+ .debug_loc     0x0000000000000ba1     0x17cd main.o
+ .debug_loc     0x000000000000236e      0xa42 rtc_mcp7940n.o
+ .debug_loc     0x0000000000002db0      0xee4 SD.o
+ .debug_loc     0x0000000000003c94      0x23a SPI.o
+ .debug_loc     0x0000000000003ece      0x4bb STORE.o
+ .debug_loc     0x0000000000004389      0x270 vUART.o
 
 .debug_macinfo
  *(.debug_macinfo)
@@ -1154,1211 +1155,1226 @@ LOAD data_init
                 0x0000000000000000       0x40 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/xc8/avr/lib/avr5/memx-const/crtatmega64m1.o
 
 .bss.sg_eCurrentType
-                0x0000000000800747        0x1
+                0x000000000080094b        0x1
  .bss.sg_eCurrentType
-                0x0000000000800747        0x1 adc.o
+                0x000000000080094b        0x1 adc.o
 
-.bss.sg_eState  0x000000000080075a        0x1
+.bss.sg_eState  0x000000000080095e        0x1
  .bss.sg_eState
-                0x000000000080075a        0x1 adc.o
+                0x000000000080095e        0x1 adc.o
 
 .bss.sg_bInRetransmit
-                0x000000000080075b        0x1
+                0x000000000080095f        0x1
  .bss.sg_bInRetransmit
-                0x000000000080075b        0x1 can.o
+                0x000000000080095f        0x1 can.o
 
 .bss.sg_u8LastTXDataLen
-                0x000000000080075c        0x1
+                0x0000000000800960        0x1
  .bss.sg_u8LastTXDataLen
-                0x000000000080075c        0x1 can.o
+                0x0000000000800960        0x1 can.o
 
 .bss.sg_u8LastTXData
-                0x0000000000800735        0x8
+                0x0000000000800939        0x8
  .bss.sg_u8LastTXData
-                0x0000000000800735        0x8 can.o
+                0x0000000000800939        0x8 can.o
 
 .bss.sg_eLastTXType
-                0x000000000080075d        0x1
+                0x0000000000800961        0x1
  .bss.sg_eLastTXType
-                0x000000000080075d        0x1 can.o
+                0x0000000000800961        0x1 can.o
 
 .bss.sg_u8TransmitAttempts
-                0x000000000080075e        0x1
+                0x0000000000800962        0x1
  .bss.sg_u8TransmitAttempts
-                0x000000000080075e        0x1 can.o
+                0x0000000000800962        0x1 can.o
 
 .bss.sg_pfRXCallback
-                0x0000000000800745        0x2
+                0x0000000000800949        0x2
  .bss.sg_pfRXCallback
-                0x0000000000800745        0x2 can.o
+                0x0000000000800949        0x2 can.o
 
-.bss.sg_bBusy   0x000000000080075f        0x1
- .bss.sg_bBusy  0x000000000080075f        0x1 can.o
+.bss.sg_bBusy   0x0000000000800963        0x1
+ .bss.sg_bBusy  0x0000000000800963        0x1 can.o
 
 .bss.sg_u8PCMSK1
-                0x0000000000800760        0x1
+                0x0000000000800964        0x1
  .bss.sg_u8PCMSK1
-                0x0000000000800760        0x1 main.o
+                0x0000000000800964        0x1 main.o
 
 .bss.sg_u8PCMSK0
-                0x0000000000800761        0x1
+                0x0000000000800965        0x1
  .bss.sg_u8PCMSK0
-                0x0000000000800761        0x1 main.o
+                0x0000000000800965        0x1 main.o
 
 .bss.sg_u8UnhandledInterruptVector
-                0x0000000000800762        0x1
+                0x0000000000800966        0x1
  .bss.sg_u8UnhandledInterruptVector
-                0x0000000000800762        0x1 main.o
+                0x0000000000800966        0x1 main.o
 
 .bss.sg_u8Reason
-                0x0000000000800763        0x1
+                0x0000000000800967        0x1
  .bss.sg_u8Reason
-                0x0000000000800763        0x1 main.o
+                0x0000000000800967        0x1 main.o
 
 .bss.sg_eStringPowerState
-                0x0000000000800764        0x1
+                0x0000000000800968        0x1
  .bss.sg_eStringPowerState
-                0x0000000000800764        0x1 main.o
+                0x0000000000800968        0x1 main.o
 
 .bss.sg_u8ControllerStatusMsgCount
-                0x0000000000800765        0x1
+                0x0000000000800969        0x1
  .bss.sg_u8ControllerStatusMsgCount
-                0x0000000000800765        0x1 main.o
+                0x0000000000800969        0x1 main.o
 
 .bss.sg_u8CellReports
-                0x0000000000800766        0x1
+                0x000000000080096a        0x1
  .bss.sg_u8CellReports
-                0x0000000000800766        0x1 main.o
+                0x000000000080096a        0x1 main.o
 
 .bss.sg_u16BytesReceived
-                0x0000000000800754        0x2
+                0x0000000000800958        0x2
  .bss.sg_u16BytesReceived
-                0x0000000000800754        0x2 main.o
+                0x0000000000800958        0x2 main.o
 
 .bss.sg_u8CellBufferTemp
-                0x0000000000800748        0x4
+                0x000000000080094c        0x4
  .bss.sg_u8CellBufferTemp
-                0x0000000000800748        0x4 main.o
+                0x000000000080094c        0x4 main.o
 
 .bss.sg_u8CellBufferRX
-                0x0000000000800767        0x1
+                0x000000000080096b        0x1
  .bss.sg_u8CellBufferRX
-                0x0000000000800767        0x1 main.o
+                0x000000000080096b        0x1 main.o
 
 .bss.sg_u8CellIndex
-                0x0000000000800768        0x1
+                0x000000000080096c        0x1
  .bss.sg_u8CellIndex
-                0x0000000000800768        0x1 main.o
+                0x000000000080096c        0x1 main.o
 
 .bss.sg_u8TicksSinceLastPackControllerMessage
-                0x0000000000800769        0x1
+                0x000000000080096d        0x1
  .bss.sg_u8TicksSinceLastPackControllerMessage
-                0x0000000000800769        0x1 main.o
+                0x000000000080096d        0x1 main.o
 
 .bss.sg_u8CellStringPowerTimer
-                0x000000000080076a        0x1
+                0x000000000080096e        0x1
  .bss.sg_u8CellStringPowerTimer
-                0x000000000080076a        0x1 main.o
+                0x000000000080096e        0x1 main.o
 
 .bss.sg_bFrameStart
-                0x000000000080076b        0x1
+                0x000000000080096f        0x1
  .bss.sg_bFrameStart
-                0x000000000080076b        0x1 main.o
+                0x000000000080096f        0x1 main.o
 
 .bss.sg_u8CellFrameTimer
-                0x000000000080076c        0x1
+                0x0000000000800970        0x1
  .bss.sg_u8CellFrameTimer
-                0x000000000080076c        0x1 main.o
+                0x0000000000800970        0x1 main.o
+
+.bss.sg_bIgnoreStatusRequests
+                0x0000000000800971        0x1
+ .bss.sg_bIgnoreStatusRequests
+                0x0000000000800971        0x1 main.o
+
+.bss.sg_u8AnnouncementDelayTicks
+                0x0000000000800972        0x1
+ .bss.sg_u8AnnouncementDelayTicks
+                0x0000000000800972        0x1 main.o
+
+.bss.sg_bAnnouncementPending
+                0x0000000000800973        0x1
+ .bss.sg_bAnnouncementPending
+                0x0000000000800973        0x1 main.o
 
 .bss.sg_u8CurrentBufferIndex
-                0x000000000080076d        0x1
+                0x0000000000800974        0x1
  .bss.sg_u8CurrentBufferIndex
-                0x000000000080076d        0x1 main.o
+                0x0000000000800974        0x1 main.o
 
 .bss.sg_sCurrenBuffer
-                0x0000000000800715       0x10
+                0x0000000000800919       0x10
  .bss.sg_sCurrenBuffer
-                0x0000000000800715       0x10 main.o
+                0x0000000000800919       0x10 main.o
 
 .bss.sg_u64Time
-                0x000000000080073d        0x8
+                0x0000000000800941        0x8
  .bss.sg_u64Time
-                0x000000000080073d        0x8 rtc_mcp7940n.o
+                0x0000000000800941        0x8 rtc_mcp7940n.o
 
-.bss.sg_u8CSD   0x0000000000800725       0x10
- .bss.sg_u8CSD  0x0000000000800725       0x10 SD.o
+.bss.sg_u8CSD   0x0000000000800929       0x10
+ .bss.sg_u8CSD  0x0000000000800929       0x10 SD.o
 
 .bss.sg_u16BlockSize
-                0x0000000000800756        0x2
+                0x000000000080095a        0x2
  .bss.sg_u16BlockSize
-                0x0000000000800756        0x2 SD.o
+                0x000000000080095a        0x2 SD.o
 
 .bss.sg_u32SDSectorCount
-                0x000000000080074c        0x4
+                0x0000000000800950        0x4
  .bss.sg_u32SDSectorCount
-                0x000000000080074c        0x4 SD.o
+                0x0000000000800950        0x4 SD.o
 
 .bss.frameBuffer
-                0x0000000000800324      0x200
+                0x0000000000800328      0x400
  .bss.frameBuffer
-                0x0000000000800324      0x200 STORE.o
+                0x0000000000800328      0x400 STORE.o
 
 .bss.currentSector
-                0x0000000000800750        0x4
+                0x0000000000800954        0x4
  .bss.currentSector
-                0x0000000000800750        0x4 STORE.o
+                0x0000000000800954        0x4 STORE.o
 
-.bss.gState     0x0000000000800524      0x1d8
- .bss.gState    0x0000000000800524      0x1d8 STORE.o
+.bss.gState     0x0000000000800728      0x1d8
+ .bss.gState    0x0000000000800728      0x1d8 STORE.o
 
-.bss.sg_bState  0x000000000080076e        0x1
+.bss.sg_bState  0x0000000000800975        0x1
  .bss.sg_bState
-                0x000000000080076e        0x1 vUART.o
+                0x0000000000800975        0x1 vUART.o
 
 .bss.sg_u8SendData
-                0x0000000000800758        0x2
+                0x000000000080095c        0x2
  .bss.sg_u8SendData
-                0x0000000000800758        0x2 vUART.o
+                0x000000000080095c        0x2 vUART.o
 
 .bss.sg_u8SendIndex
-                0x000000000080076f        0x1
+                0x0000000000800976        0x1
  .bss.sg_u8SendIndex
-                0x000000000080076f        0x1 vUART.o
+                0x0000000000800976        0x1 vUART.o
 
 .bss.sg_bMCTxNextBit
-                0x0000000000800770        0x1
+                0x0000000000800977        0x1
  .bss.sg_bMCTxNextBit
-                0x0000000000800770        0x1 vUART.o
+                0x0000000000800977        0x1 vUART.o
 
 .bss.sg_bCellReportsReuested
-                0x0000000000800771        0x1
+                0x0000000000800978        0x1
  .bss.sg_bCellReportsReuested
-                0x0000000000800771        0x1 vUART.o
+                0x0000000000800978        0x1 vUART.o
 
 .bss.sg_etxState
-                0x0000000000800772        0x1
+                0x0000000000800979        0x1
  .bss.sg_etxState
-                0x0000000000800772        0x1 vUART.o
+                0x0000000000800979        0x1 vUART.o
 
 .bss.sg_btxMoreAvailable
-                0x0000000000800773        0x1
+                0x000000000080097a        0x1
  .bss.sg_btxMoreAvailable
-                0x0000000000800773        0x1 vUART.o
+                0x000000000080097a        0x1 vUART.o
 
 .bss.sg_u8txDataByte
-                0x0000000000800774        0x1
+                0x000000000080097b        0x1
  .bss.sg_u8txDataByte
-                0x0000000000800774        0x1 vUART.o
+                0x000000000080097b        0x1 vUART.o
 
 .bss.sg_u8txBitCount
-                0x0000000000800775        0x1
+                0x000000000080097c        0x1
  .bss.sg_u8txBitCount
-                0x0000000000800775        0x1 vUART.o
+                0x000000000080097c        0x1 vUART.o
 
 .bss.sg_bCell_mc_rxMoreData
-                0x0000000000800776        0x1
+                0x000000000080097d        0x1
  .bss.sg_bCell_mc_rxMoreData
-                0x0000000000800776        0x1 vUART.o
+                0x000000000080097d        0x1 vUART.o
 
 .bss.sg_bCell_mc_rxPriorState
-                0x0000000000800777        0x1
+                0x000000000080097e        0x1
  .bss.sg_bCell_mc_rxPriorState
-                0x0000000000800777        0x1 vUART.o
+                0x000000000080097e        0x1 vUART.o
 
 .bss.sg_eCell_mc_rxState
-                0x0000000000800778        0x1
+                0x000000000080097f        0x1
  .bss.sg_eCell_mc_rxState
-                0x0000000000800778        0x1 vUART.o
+                0x000000000080097f        0x1 vUART.o
 
 .bss.sg_u8rxDataByte
-                0x0000000000800779        0x1
+                0x0000000000800980        0x1
  .bss.sg_u8rxDataByte
-                0x0000000000800779        0x1 vUART.o
+                0x0000000000800980        0x1 vUART.o
 
 .bss.sg_u8Cell_mc_rxBitCount
-                0x000000000080077a        0x1
+                0x0000000000800981        0x1
  .bss.sg_u8Cell_mc_rxBitCount
-                0x000000000080077a        0x1 vUART.o
+                0x0000000000800981        0x1 vUART.o
 
-.bss.tm.1240    0x00000000008006fc       0x19
- .bss.tm.1240   0x00000000008006fc       0x19 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime.o)
+.bss.tm.1240    0x0000000000800900       0x19
+ .bss.tm.1240   0x0000000000800900       0x19 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime.o)
+
+.progmemx.data  0x00000000000000da      0x1a1
+ .progmemx.data
+                0x00000000000000da      0x1a1 main.o
 
 .progmemx.data.secs_through_month.1090
-                0x00000000000000da       0x30
+                0x000000000000027b       0x30
  .progmemx.data.secs_through_month.1090
-                0x00000000000000da       0x30 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__month_to_secs.o)
+                0x000000000000027b       0x30 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__month_to_secs.o)
 
 .progmemx.data.sg_sSPIBaudRates
-                0x000000000000010a       0x2a
+                0x00000000000002ab       0x2a
  .progmemx.data.sg_sSPIBaudRates
-                0x000000000000010a       0x2a SPI.o
+                0x00000000000002ab       0x2a SPI.o
 
 .progmemx.data.sg_sRXCommandList
-                0x0000000000000134       0x1b
+                0x00000000000002d5       0x21
  .progmemx.data.sg_sRXCommandList
-                0x0000000000000134       0x1b can.o
+                0x00000000000002d5       0x21 can.o
 
-.progmemx.data  0x000000000000014f       0x1b
+.progmemx.data  0x00000000000002f6       0x14
  .progmemx.data
-                0x000000000000014f       0x1b main.o
-
-.progmemx.data  0x000000000000016a       0x14
- .progmemx.data
-                0x000000000000016a       0x14 rtc_mcp7940n.o
+                0x00000000000002f6       0x14 rtc_mcp7940n.o
 
 .progmemx.data.sg_u8FractionalLookup
-                0x000000000000017e       0x10
+                0x000000000000030a       0x10
  .progmemx.data.sg_u8FractionalLookup
-                0x000000000000017e       0x10 main.o
+                0x000000000000030a       0x10 main.o
 
 .progmemx.data.sg_sMuxSelectList
-                0x000000000000018e        0xf
+                0x000000000000031a        0xf
  .progmemx.data.sg_sMuxSelectList
-                0x000000000000018e        0xf adc.o
+                0x000000000000031a        0xf adc.o
 
 .progmemx.data.sg_u8DaysInMonths
-                0x000000000000019d        0xc
+                0x0000000000000329        0xc
  .progmemx.data.sg_u8DaysInMonths
-                0x000000000000019d        0xc rtc_mcp7940n.o
+                0x0000000000000329        0xc rtc_mcp7940n.o
 
 .progmemx.data.days_in_month.1250
-                0x00000000000001a9        0xc
+                0x0000000000000335        0xc
  .progmemx.data.days_in_month.1250
-                0x00000000000001a9        0xc c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__secs_to_tm.o)
+                0x0000000000000335        0xc c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__secs_to_tm.o)
 
-.progmemx.data  0x00000000000001b5        0xb
+.progmemx.data  0x0000000000000341        0xb
  .progmemx.data
-                0x00000000000001b5        0xb adc.o
+                0x0000000000000341        0xb adc.o
 
-.progmemx.data  0x00000000000001c0        0xb
+.progmemx.data  0x000000000000034c        0xb
  .progmemx.data
-                0x00000000000001c0        0xb can.o
+                0x000000000000034c        0xb can.o
 
 .progmemx.data.sg_sMOBModuleRequestTime
-                0x00000000000001cb        0x8
+                0x0000000000000357        0x8
  .progmemx.data.sg_sMOBModuleRequestTime
-                0x00000000000001cb        0x8 can.o
+                0x0000000000000357        0x8 can.o
 
 .progmemx.data.sg_sMOBModuleHardwareDetail
-                0x00000000000001d3        0x8
+                0x000000000000035f        0x8
  .progmemx.data.sg_sMOBModuleHardwareDetail
-                0x00000000000001d3        0x8 can.o
+                0x000000000000035f        0x8 can.o
 
 .progmemx.data.sg_sMOBModuleCellDetail
-                0x00000000000001db        0x8
+                0x0000000000000367        0x8
  .progmemx.data.sg_sMOBModuleCellDetail
-                0x00000000000001db        0x8 can.o
+                0x0000000000000367        0x8 can.o
 
 .progmemx.data.sg_sMOBModuleCellCommStat2
-                0x00000000000001e3        0x8
+                0x000000000000036f        0x8
  .progmemx.data.sg_sMOBModuleCellCommStat2
-                0x00000000000001e3        0x8 can.o
+                0x000000000000036f        0x8 can.o
 
 .progmemx.data.sg_sMOBModuleCellCommStat1
-                0x00000000000001eb        0x8
+                0x0000000000000377        0x8
  .progmemx.data.sg_sMOBModuleCellCommStat1
-                0x00000000000001eb        0x8 can.o
+                0x0000000000000377        0x8 can.o
 
 .progmemx.data.sg_sMOBModuleStatus3
-                0x00000000000001f3        0x8
+                0x000000000000037f        0x8
  .progmemx.data.sg_sMOBModuleStatus3
-                0x00000000000001f3        0x8 can.o
+                0x000000000000037f        0x8 can.o
 
 .progmemx.data.sg_sMOBModuleStatus2
-                0x00000000000001fb        0x8
+                0x0000000000000387        0x8
  .progmemx.data.sg_sMOBModuleStatus2
-                0x00000000000001fb        0x8 can.o
+                0x0000000000000387        0x8 can.o
 
 .progmemx.data.sg_sMOBModuleStatus1
-                0x0000000000000203        0x8
+                0x000000000000038f        0x8
  .progmemx.data.sg_sMOBModuleStatus1
-                0x0000000000000203        0x8 can.o
+                0x000000000000038f        0x8 can.o
 
 .progmemx.data.sg_sMOBModuleAnnouncement
-                0x000000000000020b        0x8
+                0x0000000000000397        0x8
  .progmemx.data.sg_sMOBModuleAnnouncement
-                0x000000000000020b        0x8 can.o
+                0x0000000000000397        0x8 can.o
 
 .progmemx.data.sg_sMOBGenericReceive
-                0x0000000000000213        0x8
+                0x000000000000039f        0x8
  .progmemx.data.sg_sMOBGenericReceive
-                0x0000000000000213        0x8 can.o
+                0x000000000000039f        0x8 can.o
 
 .progmemx.data.sg_sMOBDisabled
-                0x000000000000021b        0x8
+                0x00000000000003a7        0x8
  .progmemx.data.sg_sMOBDisabled
-                0x000000000000021b        0x8 can.o
+                0x00000000000003a7        0x8 can.o
 
-.progmemx.data  0x0000000000000223        0x4
+.progmemx.data  0x00000000000003af        0x4
  .progmemx.data
-                0x0000000000000223        0x4 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime_r.o)
+                0x00000000000003af        0x4 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime_r.o)
 
-.progmemx.data  0x0000000000000227        0x4
+.progmemx.data  0x00000000000003b3        0x4
  .progmemx.data
-                0x0000000000000227        0x4 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(mktime.o)
+                0x00000000000003b3        0x4 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(mktime.o)
 
 .text.__secs_to_tm
-                0x000000000000022c      0x458
+                0x00000000000003b8      0x458
  .text.__secs_to_tm
-                0x000000000000022c      0x458 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__secs_to_tm.o)
-                0x000000000000022c                __secs_to_tm
+                0x00000000000003b8      0x458 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__secs_to_tm.o)
+                0x00000000000003b8                __secs_to_tm
 
 .text.ControllerStatusMessagesSend
-                0x0000000000000684      0x3dc
+                0x0000000000000810      0x3e8
  .text.ControllerStatusMessagesSend
-                0x0000000000000684      0x3dc main.o
-
-.text.CellStringProcess
-                0x0000000000000a60      0x2a6
- .text.CellStringProcess
-                0x0000000000000a60      0x2a6 main.o
-
-.text.__year_to_secs
-                0x0000000000000d06      0x256
- .text.__year_to_secs
-                0x0000000000000d06      0x256 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__year_to_secs.o)
-                0x0000000000000d06                __year_to_secs
-
-.text.main      0x0000000000000f5c      0x252
- .text.main     0x0000000000000f5c      0x252 main.o
-                0x0000000000000f5c                main
-
-.text.RTCInit   0x00000000000011ae      0x222
- .text.RTCInit  0x00000000000011ae      0x222 rtc_mcp7940n.o
-                0x00000000000011ae                RTCInit
-
-.text.CANMOBSet
-                0x00000000000013d0      0x1fe
- .text.CANMOBSet
-                0x00000000000013d0      0x1fe can.o
-
-.text.ModuleControllerStateHandle
-                0x00000000000015ce      0x1f6
- .text.ModuleControllerStateHandle
-                0x00000000000015ce      0x1f6 main.o
-
-.text.__tm_to_secs
-                0x00000000000017c4      0x1be
- .text.__tm_to_secs
-                0x00000000000017c4      0x1be c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__tm_to_secs.o)
-                0x00000000000017c4                __tm_to_secs
-
-.text.CANMOBInterrupt
-                0x0000000000001982      0x192
- .text.CANMOBInterrupt
-                0x0000000000001982      0x192 can.o
-                0x0000000000001982                CANMOBInterrupt
-
-.text.CANSendMessageInternal
-                0x0000000000001b14      0x178
- .text.CANSendMessageInternal
-                0x0000000000001b14      0x178 can.o
-
-.text.SDInit    0x0000000000001c8c      0x166
- .text.SDInit   0x0000000000001c8c      0x166 SD.o
-                0x0000000000001c8c                SDInit
+                0x0000000000000810      0x3e8 main.o
 
 .text.CANReceiveCallback
-                0x0000000000001df2      0x148
+                0x0000000000000bf8      0x2b0
  .text.CANReceiveCallback
-                0x0000000000001df2      0x148 main.o
-                0x0000000000001df2                CANReceiveCallback
+                0x0000000000000bf8      0x2b0 main.o
+                0x0000000000000bf8                CANReceiveCallback
 
-.text.ADCInit   0x0000000000001f3a      0x13c
- .text.ADCInit  0x0000000000001f3a      0x13c adc.o
-                0x0000000000001f3a                ADCInit
+.text.main      0x0000000000000ea8      0x2b0
+ .text.main     0x0000000000000ea8      0x2b0 main.o
+                0x0000000000000ea8                main
+
+.text.CellStringProcess
+                0x0000000000001158      0x2aa
+ .text.CellStringProcess
+                0x0000000000001158      0x2aa main.o
+
+.text.__year_to_secs
+                0x0000000000001402      0x256
+ .text.__year_to_secs
+                0x0000000000001402      0x256 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__year_to_secs.o)
+                0x0000000000001402                __year_to_secs
+
+.text.RTCInit   0x0000000000001658      0x222
+ .text.RTCInit  0x0000000000001658      0x222 rtc_mcp7940n.o
+                0x0000000000001658                RTCInit
+
+.text.ModuleControllerStateHandle
+                0x000000000000187a      0x21e
+ .text.ModuleControllerStateHandle
+                0x000000000000187a      0x21e main.o
+
+.text.CANMOBSet
+                0x0000000000001a98      0x212
+ .text.CANMOBSet
+                0x0000000000001a98      0x212 can.o
+
+.text.__tm_to_secs
+                0x0000000000001caa      0x1be
+ .text.__tm_to_secs
+                0x0000000000001caa      0x1be c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__tm_to_secs.o)
+                0x0000000000001caa                __tm_to_secs
+
+.text.CANMOBInterrupt
+                0x0000000000001e68      0x192
+ .text.CANMOBInterrupt
+                0x0000000000001e68      0x192 can.o
+                0x0000000000001e68                CANMOBInterrupt
+
+.text.CANSendMessageInternal
+                0x0000000000001ffa      0x178
+ .text.CANSendMessageInternal
+                0x0000000000001ffa      0x178 can.o
+
+.text.SDInit    0x0000000000002172      0x166
+ .text.SDInit   0x0000000000002172      0x166 SD.o
+                0x0000000000002172                SDInit
+
+.text.ADCInit   0x00000000000022d8      0x13c
+ .text.ADCInit  0x00000000000022d8      0x13c adc.o
+                0x00000000000022d8                ADCInit
 
 .text.__vector_15
-                0x0000000000002076      0x134
+                0x0000000000002414      0x134
  .text.__vector_15
-                0x0000000000002076      0x134 vUART.o
-                0x0000000000002076                __vector_15
+                0x0000000000002414      0x134 vUART.o
+                0x0000000000002414                __vector_15
 
 .text.__vector_18
-                0x00000000000021aa      0x11a
+                0x0000000000002548      0x118
  .text.__vector_18
-                0x00000000000021aa      0x11a can.o
-                0x00000000000021aa                __vector_18
+                0x0000000000002548      0x118 can.o
+                0x0000000000002548                __vector_18
 
 .text.ModuleCurrentConvertReadings
-                0x00000000000022c4      0x104
+                0x0000000000002660      0x104
  .text.ModuleCurrentConvertReadings
-                0x00000000000022c4      0x104 main.o
+                0x0000000000002660      0x104 main.o
 
 .text.RTCWriteHW
-                0x00000000000023c8       0xfe
+                0x0000000000002764       0xfe
  .text.RTCWriteHW
-                0x00000000000023c8       0xfe rtc_mcp7940n.o
+                0x0000000000002764       0xfe rtc_mcp7940n.o
 
 .text.STORE_WriteFrame
-                0x00000000000024c6       0xf6
+                0x0000000000002862       0xf8
  .text.STORE_WriteFrame
-                0x00000000000024c6       0xf6 STORE.o
-                0x00000000000024c6                STORE_WriteFrame
+                0x0000000000002862       0xf8 STORE.o
+                0x0000000000002862                STORE_WriteFrame
 
 .text.RTCReadHW
-                0x00000000000025bc       0xe2
+                0x000000000000295a       0xe2
  .text.RTCReadHW
-                0x00000000000025bc       0xe2 rtc_mcp7940n.o
+                0x000000000000295a       0xe2 rtc_mcp7940n.o
 
 .text.__vector_16
-                0x000000000000269e       0xde
+                0x0000000000002a3c       0xde
  .text.__vector_16
-                0x000000000000269e       0xde vUART.o
-                0x000000000000269e                __vector_16
+                0x0000000000002a3c       0xde vUART.o
+                0x0000000000002a3c                __vector_16
 
-.text.SDWrite   0x000000000000277c       0xdc
- .text.SDWrite  0x000000000000277c       0xdc SD.o
-                0x000000000000277c                SDWrite
+.text.SDWrite   0x0000000000002b1a       0xdc
+ .text.SDWrite  0x0000000000002b1a       0xdc SD.o
+                0x0000000000002b1a                SDWrite
 
 .text.updateSessionMap
-                0x0000000000002858       0xdc
+                0x0000000000002bf6       0xdc
  .text.updateSessionMap
-                0x0000000000002858       0xdc STORE.o
+                0x0000000000002bf6       0xdc STORE.o
 
-.text.SDRead    0x0000000000002934       0xd8
- .text.SDRead   0x0000000000002934       0xd8 SD.o
-                0x0000000000002934                SDRead
-
-.text.SPISetBaudRate
-                0x0000000000002a0c       0xca
- .text.SPISetBaudRate
-                0x0000000000002a0c       0xca SPI.o
-                0x0000000000002a0c                SPISetBaudRate
-
-.text.RTCSetTime
-                0x0000000000002ad6       0xc6
- .text.RTCSetTime
-                0x0000000000002ad6       0xc6 rtc_mcp7940n.o
-                0x0000000000002ad6                RTCSetTime
-
-.text.CellCountExpectedSet
-                0x0000000000002b9c       0xc4
- .text.CellCountExpectedSet
-                0x0000000000002b9c       0xc4 main.o
-
-.text.SDTransmitDataBlock
-                0x0000000000002c60       0xc2
- .text.SDTransmitDataBlock
-                0x0000000000002c60       0xc2 SD.o
-
-.text.__vector_27
-                0x0000000000002d22       0xbc
- .text.__vector_27
-                0x0000000000002d22       0xbc adc.o
-                0x0000000000002d22                __vector_27
-
-.text.__vector_12
-                0x0000000000002dde       0xba
- .text.__vector_12
-                0x0000000000002dde       0xba main.o
-                0x0000000000002dde                __vector_12
+.text.SDRead    0x0000000000002cd2       0xd8
+ .text.SDRead   0x0000000000002cd2       0xd8 SD.o
+                0x0000000000002cd2                SDRead
 
 .text.FrameInit
-                0x0000000000002e98       0xb4
+                0x0000000000002daa       0xca
  .text.FrameInit
-                0x0000000000002e98       0xb4 main.o
-                0x0000000000002e98                FrameInit
+                0x0000000000002daa       0xca main.o
+                0x0000000000002daa                FrameInit
+
+.text.SPISetBaudRate
+                0x0000000000002e74       0xca
+ .text.SPISetBaudRate
+                0x0000000000002e74       0xca SPI.o
+                0x0000000000002e74                SPISetBaudRate
+
+.text.RTCSetTime
+                0x0000000000002f3e       0xc6
+ .text.RTCSetTime
+                0x0000000000002f3e       0xc6 rtc_mcp7940n.o
+                0x0000000000002f3e                RTCSetTime
+
+.text.CellCountExpectedSet
+                0x0000000000003004       0xc4
+ .text.CellCountExpectedSet
+                0x0000000000003004       0xc4 main.o
+
+.text.SDTransmitDataBlock
+                0x00000000000030c8       0xc2
+ .text.SDTransmitDataBlock
+                0x00000000000030c8       0xc2 SD.o
+
+.text.__vector_27
+                0x000000000000318a       0xbc
+ .text.__vector_27
+                0x000000000000318a       0xbc adc.o
+                0x000000000000318a                __vector_27
+
+.text.__vector_12
+                0x0000000000003246       0xba
+ .text.__vector_12
+                0x0000000000003246       0xba main.o
+                0x0000000000003246                __vector_12
 
 .text.SDCommand
-                0x0000000000002f4c       0xaa
+                0x0000000000003300       0xaa
  .text.SDCommand
-                0x0000000000002f4c       0xaa SD.o
+                0x0000000000003300       0xaa SD.o
 
 .text.libgcc.div
-                0x0000000000002ff6       0xa2
+                0x00000000000033aa       0xa2
  .text.libgcc.div
-                0x0000000000002ff6       0xa2 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_udivmod64.o)
-                0x0000000000002ff6                __udivmod64
+                0x00000000000033aa       0xa2 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_udivmod64.o)
+                0x00000000000033aa                __udivmod64
 
 .text.libgcc.mul
-                0x0000000000003098       0xa0
+                0x000000000000344c       0xa0
  .text.libgcc.mul
-                0x0000000000003098       0xa0 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_muldi3.o)
-                0x0000000000003098                __muldi3
+                0x000000000000344c       0xa0 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_muldi3.o)
+                0x000000000000344c                __muldi3
 
-.text.CANInit   0x0000000000003138       0x9c
- .text.CANInit  0x0000000000003138       0x9c can.o
-                0x0000000000003138                CANInit
+.text.CANInit   0x00000000000034ec       0x9c
+ .text.CANInit  0x00000000000034ec       0x9c can.o
+                0x00000000000034ec                CANInit
 
 .text.CurrentThresholdsGet
-                0x00000000000031d4       0x94
+                0x0000000000003588       0x94
  .text.CurrentThresholdsGet
-                0x00000000000031d4       0x94 main.o
+                0x0000000000003588       0x94 main.o
 
 .text.__vector_23
-                0x0000000000003268       0x8a
+                0x000000000000361c       0x8a
  .text.__vector_23
-                0x0000000000003268       0x8a main.o
-                0x0000000000003268                __vector_23
+                0x000000000000361c       0x8a main.o
+                0x000000000000361c                __vector_23
 
 .text.SDReceiveDataBlock
-                0x00000000000032f2       0x8a
+                0x00000000000036a6       0x8a
  .text.SDReceiveDataBlock
-                0x00000000000032f2       0x8a SD.o
+                0x00000000000036a6       0x8a SD.o
 
 .text.CellStringPowerStateMachine
-                0x000000000000337c       0x88
+                0x0000000000003730       0x88
  .text.CellStringPowerStateMachine
-                0x000000000000337c       0x88 main.o
+                0x0000000000003730       0x88 main.o
 
 .text.__vector_10
-                0x0000000000003404       0x86
+                0x00000000000037b8       0x86
  .text.__vector_10
-                0x0000000000003404       0x86 rtc_mcp7940n.o
-                0x0000000000003404                __vector_10
+                0x00000000000037b8       0x86 rtc_mcp7940n.o
+                0x00000000000037b8                __vector_10
 
-.text.mktime    0x000000000000348a       0x86
- .text.mktime   0x000000000000348a       0x86 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(mktime.o)
-                0x000000000000348a                mktime
+.text.mktime    0x000000000000383e       0x86
+ .text.mktime   0x000000000000383e       0x86 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(mktime.o)
+                0x000000000000383e                mktime
 
 .text.STORE_Init
-                0x0000000000003510       0x82
+                0x00000000000038c4       0x82
  .text.STORE_Init
-                0x0000000000003510       0x82 STORE.o
-                0x0000000000003510                STORE_Init
+                0x00000000000038c4       0x82 STORE.o
+                0x00000000000038c4                STORE_Init
 
 .text.ModuleControllerGetUniqueID
-                0x0000000000003592       0x7e
+                0x0000000000003946       0x7e
  .text.ModuleControllerGetUniqueID
-                0x0000000000003592       0x7e main.o
-                0x0000000000003592                ModuleControllerGetUniqueID
+                0x0000000000003946       0x7e main.o
+                0x0000000000003946                ModuleControllerGetUniqueID
 
 .text.RTCReadRegisters
-                0x0000000000003610       0x7e
+                0x00000000000039c4       0x7e
  .text.RTCReadRegisters
-                0x0000000000003610       0x7e rtc_mcp7940n.o
-                0x0000000000003610                RTCReadRegisters
+                0x00000000000039c4       0x7e rtc_mcp7940n.o
+                0x00000000000039c4                RTCReadRegisters
 
 .text.HWToStructTM
-                0x000000000000368e       0x7c
+                0x0000000000003a42       0x7c
  .text.HWToStructTM
-                0x000000000000368e       0x7c rtc_mcp7940n.o
+                0x0000000000003a42       0x7c rtc_mcp7940n.o
 
 .text.SDReadCSD
-                0x000000000000370a       0x7c
+                0x0000000000003abe       0x7c
  .text.SDReadCSD
-                0x000000000000370a       0x7c SD.o
+                0x0000000000003abe       0x7c SD.o
 
 .text.I2CRxByte
-                0x0000000000003786       0x7a
+                0x0000000000003b3a       0x7a
  .text.I2CRxByte
-                0x0000000000003786       0x7a I2c.o
-                0x0000000000003786                I2CRxByte
+                0x0000000000003b3a       0x7a I2c.o
+                0x0000000000003b3a                I2CRxByte
 
 .text.CellDataConvertTemperature
-                0x0000000000003800       0x7a
+                0x0000000000003bb4       0x7a
  .text.CellDataConvertTemperature
-                0x0000000000003800       0x7a main.o
+                0x0000000000003bb4       0x7a main.o
 
 .text.vUARTRXData
-                0x000000000000387a       0x7a
+                0x0000000000003c2e       0x7a
  .text.vUARTRXData
-                0x000000000000387a       0x7a main.o
-                0x000000000000387a                vUARTRXData
+                0x0000000000003c2e       0x7a main.o
+                0x0000000000003c2e                vUARTRXData
 
 .text.__gmtime_r
-                0x00000000000038f4       0x6c
+                0x0000000000003ca8       0x6c
  .text.__gmtime_r
-                0x00000000000038f4       0x6c c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime_r.o)
-                0x00000000000038f4                __gmtime_r
-                0x00000000000038f4                gmtime_r
+                0x0000000000003ca8       0x6c c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime_r.o)
+                0x0000000000003ca8                __gmtime_r
+                0x0000000000003ca8                gmtime_r
 
 .text.I2CTxByte
-                0x0000000000003960       0x6a
+                0x0000000000003d14       0x6a
  .text.I2CTxByte
-                0x0000000000003960       0x6a I2c.o
-                0x0000000000003960                I2CTxByte
+                0x0000000000003d14       0x6a I2c.o
+                0x0000000000003d14                I2CTxByte
 
 .text.RTCWriteRegisters
-                0x00000000000039ca       0x6a
+                0x0000000000003d7e       0x6a
  .text.RTCWriteRegisters
-                0x00000000000039ca       0x6a rtc_mcp7940n.o
-                0x00000000000039ca                RTCWriteRegisters
+                0x0000000000003d7e       0x6a rtc_mcp7940n.o
+                0x0000000000003d7e                RTCWriteRegisters
 
 .text.__vector_8
-                0x0000000000003a34       0x66
+                0x0000000000003de8       0x66
  .text.__vector_8
-                0x0000000000003a34       0x66 vUART.o
-                0x0000000000003a34                __vector_8
+                0x0000000000003de8       0x66 vUART.o
+                0x0000000000003de8                __vector_8
 
 .text.CANLookupCommand
-                0x0000000000003a9a       0x62
+                0x0000000000003e4e       0x62
  .text.CANLookupCommand
-                0x0000000000003a9a       0x62 can.o
+                0x0000000000003e4e       0x62 can.o
 
 .text.CellDataConvertVoltage
-                0x0000000000003afc       0x62
+                0x0000000000003eb0       0x62
  .text.CellDataConvertVoltage
-                0x0000000000003afc       0x62 main.o
+                0x0000000000003eb0       0x62 main.o
 
 .text.libgcc.div
-                0x0000000000003b5e       0x62
+                0x0000000000003f12       0x62
  .text.libgcc.div
-                0x0000000000003b5e       0x62 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_divdi3.o)
-                0x0000000000003b5e                __moddi3
-                0x0000000000003b62                __divdi3
-                0x0000000000003b64                __divdi3_moddi3
+                0x0000000000003f12       0x62 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_divdi3.o)
+                0x0000000000003f12                __moddi3
+                0x0000000000003f16                __divdi3
+                0x0000000000003f18                __divdi3_moddi3
 
 .text.SPITransaction
-                0x0000000000003bc0       0x58
+                0x0000000000003f74       0x58
  .text.SPITransaction
-                0x0000000000003bc0       0x58 SPI.o
-                0x0000000000003bc0                SPITransaction
-
-.text.SDSendOpConditionArg
-                0x0000000000003c18       0x56
- .text.SDSendOpConditionArg
-                0x0000000000003c18       0x56 SD.o
-
-.text.vUARTStarttx
-                0x0000000000003c6e       0x56
- .text.vUARTStarttx
-                0x0000000000003c6e       0x56 vUART.o
-                0x0000000000003c6e                vUARTStarttx
-
-.text.libgcc.mul
-                0x0000000000003cc4       0x56
- .text.libgcc.mul
-                0x0000000000003cc4       0x56 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_umulsidi3.o)
-                0x0000000000003cc4                __umulsidi3
-                0x0000000000003cc6                __umulsidi3_helper
-
-.text.StructTMToHW
-                0x0000000000003d1a       0x54
- .text.StructTMToHW
-                0x0000000000003d1a       0x54 rtc_mcp7940n.o
-
-.text.Delay     0x0000000000003d6e       0x52
- .text.Delay    0x0000000000003d6e       0x52 main.o
-                0x0000000000003d6e                Delay
-
-.text.TimerInit
-                0x0000000000003dc0       0x52
- .text.TimerInit
-                0x0000000000003dc0       0x52 main.o
-                0x0000000000003dc0                TimerInit
-
-.text.__vector_28
-                0x0000000000003e12       0x52
- .text.__vector_28
-                0x0000000000003e12       0x52 main.o
-                0x0000000000003e12                __vector_28
-
-.text.__vector_24
-                0x0000000000003e64       0x4c
- .text.__vector_24
-                0x0000000000003e64       0x4c main.o
-                0x0000000000003e64                __vector_24
-
-.text.vUARTtxDataGet
-                0x0000000000003eb0       0x4c
- .text.vUARTtxDataGet
-                0x0000000000003eb0       0x4c vUART.o
-
-.text.RTCStartTransaction
-                0x0000000000003efc       0x44
- .text.RTCStartTransaction
-                0x0000000000003efc       0x44 rtc_mcp7940n.o
-
-.text.libgcc.div
-                0x0000000000003f40       0x44
- .text.libgcc.div
-                0x0000000000003f40       0x44 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_udivmodsi4.o)
-                0x0000000000003f40                __udivmodsi4
-
-.text.readGlobalState
-                0x0000000000003f84       0x3e
- .text.readGlobalState
-                0x0000000000003f84       0x3e STORE.o
-
-.text.I2CUnstick
-                0x0000000000003fc2       0x3c
- .text.I2CUnstick
-                0x0000000000003fc2       0x3c I2c.o
-                0x0000000000003fc2                I2CUnstick
-
-.text.__month_to_secs
-                0x0000000000003ffe       0x3c
- .text.__month_to_secs
-                0x0000000000003ffe       0x3c c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__month_to_secs.o)
-                0x0000000000003ffe                __month_to_secs
-
-.text.SDPowerup
-                0x000000000000403a       0x3a
- .text.SDPowerup
-                0x000000000000403a       0x3a SD.o
-
-.text.STORE_StartNewSession
-                0x0000000000004074       0x38
- .text.STORE_StartNewSession
-                0x0000000000004074       0x38 STORE.o
-                0x0000000000004074                STORE_StartNewSession
-
-.text.libgcc.prologue
-                0x00000000000040ac       0x38
- .text.libgcc.prologue
-                0x00000000000040ac       0x38 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_prologue.o)
-                0x00000000000040ac                __prologue_saves__
-
-.text.libgcc.prologue
-                0x00000000000040e4       0x36
- .text.libgcc.prologue
-                0x00000000000040e4       0x36 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_epilogue.o)
-                0x00000000000040e4                __epilogue_restores__
-
-.text.IsLeapYear
-                0x000000000000411a       0x34
- .text.IsLeapYear
-                0x000000000000411a       0x34 rtc_mcp7940n.o
-
-.text.SDSendOpCondition
-                0x000000000000414e       0x34
- .text.SDSendOpCondition
-                0x000000000000414e       0x34 SD.o
-
-.text.SDSendInterfaceCondition
-                0x0000000000004182       0x34
- .text.SDSendInterfaceCondition
-                0x0000000000004182       0x34 SD.o
-
-.text.SDReadOCR
-                0x00000000000041b6       0x32
- .text.SDReadOCR
-                0x00000000000041b6       0x32 SD.o
-
-.text.writeGlobalState
-                0x00000000000041e8       0x32
- .text.writeGlobalState
-                0x00000000000041e8       0x32 STORE.o
-
-.text.memcpy    0x000000000000421a       0x32
- .text.memcpy   0x000000000000421a       0x32 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(memcpy.o)
-                0x000000000000421a                memcpy
-
-.text.vUARTInit
-                0x000000000000424c       0x30
- .text.vUARTInit
-                0x000000000000424c       0x30 vUART.o
-                0x000000000000424c                vUARTInit
-
-.text.libgcc.div
-                0x000000000000427c       0x2e
- .text.libgcc.div
-                0x000000000000427c       0x2e c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_divmodsi4.o)
-                0x000000000000427c                __divmodsi4
-
-.text.I2CStart  0x00000000000042aa       0x2c
- .text.I2CStart
-                0x00000000000042aa       0x2c I2c.o
-                0x00000000000042aa                I2CStart
-
-.text.I2CSetup  0x00000000000042d6       0x2c
- .text.I2CSetup
-                0x00000000000042d6       0x2c I2c.o
-                0x00000000000042d6                I2CSetup
-
-.text.PlatformAssert
-                0x0000000000004302       0x2c
- .text.PlatformAssert
-                0x0000000000004302       0x2c main.o
-                0x0000000000004302                PlatformAssert
-
-.text.SPIInit   0x000000000000432e       0x2c
- .text.SPIInit  0x000000000000432e       0x2c SPI.o
-                0x000000000000432e                SPIInit
+                0x0000000000003f74       0x58 SPI.o
+                0x0000000000003f74                SPITransaction
 
 .text.STORE_EndSession
-                0x000000000000435a       0x2c
+                0x0000000000003fcc       0x58
  .text.STORE_EndSession
-                0x000000000000435a       0x2c STORE.o
-                0x000000000000435a                STORE_EndSession
+                0x0000000000003fcc       0x58 STORE.o
+                0x0000000000003fcc                STORE_EndSession
+
+.text.SDSendOpConditionArg
+                0x0000000000004024       0x56
+ .text.SDSendOpConditionArg
+                0x0000000000004024       0x56 SD.o
+
+.text.vUARTStarttx
+                0x000000000000407a       0x56
+ .text.vUARTStarttx
+                0x000000000000407a       0x56 vUART.o
+                0x000000000000407a                vUARTStarttx
+
+.text.libgcc.mul
+                0x00000000000040d0       0x56
+ .text.libgcc.mul
+                0x00000000000040d0       0x56 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_umulsidi3.o)
+                0x00000000000040d0                __umulsidi3
+                0x00000000000040d2                __umulsidi3_helper
+
+.text.StructTMToHW
+                0x0000000000004126       0x54
+ .text.StructTMToHW
+                0x0000000000004126       0x54 rtc_mcp7940n.o
+
+.text.STORE_StartNewSession
+                0x000000000000417a       0x54
+ .text.STORE_StartNewSession
+                0x000000000000417a       0x54 STORE.o
+                0x000000000000417a                STORE_StartNewSession
+
+.text.Delay     0x00000000000041ce       0x52
+ .text.Delay    0x00000000000041ce       0x52 main.o
+                0x00000000000041ce                Delay
+
+.text.TimerInit
+                0x0000000000004220       0x52
+ .text.TimerInit
+                0x0000000000004220       0x52 main.o
+                0x0000000000004220                TimerInit
+
+.text.__vector_28
+                0x0000000000004272       0x52
+ .text.__vector_28
+                0x0000000000004272       0x52 main.o
+                0x0000000000004272                __vector_28
+
+.text.__vector_24
+                0x00000000000042c4       0x4c
+ .text.__vector_24
+                0x00000000000042c4       0x4c main.o
+                0x00000000000042c4                __vector_24
+
+.text.vUARTtxDataGet
+                0x0000000000004310       0x4c
+ .text.vUARTtxDataGet
+                0x0000000000004310       0x4c vUART.o
+
+.text.RTCStartTransaction
+                0x000000000000435c       0x44
+ .text.RTCStartTransaction
+                0x000000000000435c       0x44 rtc_mcp7940n.o
+
+.text.libgcc.div
+                0x00000000000043a0       0x44
+ .text.libgcc.div
+                0x00000000000043a0       0x44 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_udivmodsi4.o)
+                0x00000000000043a0                __udivmodsi4
+
+.text.readGlobalState
+                0x00000000000043e4       0x3e
+ .text.readGlobalState
+                0x00000000000043e4       0x3e STORE.o
+
+.text.I2CUnstick
+                0x0000000000004422       0x3c
+ .text.I2CUnstick
+                0x0000000000004422       0x3c I2c.o
+                0x0000000000004422                I2CUnstick
+
+.text.__month_to_secs
+                0x000000000000445e       0x3c
+ .text.__month_to_secs
+                0x000000000000445e       0x3c c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(__month_to_secs.o)
+                0x000000000000445e                __month_to_secs
+
+.text.SDPowerup
+                0x000000000000449a       0x3a
+ .text.SDPowerup
+                0x000000000000449a       0x3a SD.o
+
+.text.libgcc.prologue
+                0x00000000000044d4       0x38
+ .text.libgcc.prologue
+                0x00000000000044d4       0x38 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_prologue.o)
+                0x00000000000044d4                __prologue_saves__
+
+.text.libgcc.prologue
+                0x000000000000450c       0x36
+ .text.libgcc.prologue
+                0x000000000000450c       0x36 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_epilogue.o)
+                0x000000000000450c                __epilogue_restores__
+
+.text.IsLeapYear
+                0x0000000000004542       0x34
+ .text.IsLeapYear
+                0x0000000000004542       0x34 rtc_mcp7940n.o
+
+.text.SDSendOpCondition
+                0x0000000000004576       0x34
+ .text.SDSendOpCondition
+                0x0000000000004576       0x34 SD.o
+
+.text.SDSendInterfaceCondition
+                0x00000000000045aa       0x34
+ .text.SDSendInterfaceCondition
+                0x00000000000045aa       0x34 SD.o
+
+.text.SDReadOCR
+                0x00000000000045de       0x32
+ .text.SDReadOCR
+                0x00000000000045de       0x32 SD.o
+
+.text.writeGlobalState
+                0x0000000000004610       0x32
+ .text.writeGlobalState
+                0x0000000000004610       0x32 STORE.o
+
+.text.memcpy    0x0000000000004642       0x32
+ .text.memcpy   0x0000000000004642       0x32 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(memcpy.o)
+                0x0000000000004642                memcpy
+
+.text.vUARTInit
+                0x0000000000004674       0x30
+ .text.vUARTInit
+                0x0000000000004674       0x30 vUART.o
+                0x0000000000004674                vUARTInit
+
+.text.libgcc.div
+                0x00000000000046a4       0x2e
+ .text.libgcc.div
+                0x00000000000046a4       0x2e c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_divmodsi4.o)
+                0x00000000000046a4                __divmodsi4
+
+.text.I2CStart  0x00000000000046d2       0x2c
+ .text.I2CStart
+                0x00000000000046d2       0x2c I2c.o
+                0x00000000000046d2                I2CStart
+
+.text.I2CSetup  0x00000000000046fe       0x2c
+ .text.I2CSetup
+                0x00000000000046fe       0x2c I2c.o
+                0x00000000000046fe                I2CSetup
+
+.text.PlatformAssert
+                0x000000000000472a       0x2c
+ .text.PlatformAssert
+                0x000000000000472a       0x2c main.o
+                0x000000000000472a                PlatformAssert
+
+.text.SPIInit   0x0000000000004756       0x2c
+ .text.SPIInit  0x0000000000004756       0x2c SPI.o
+                0x0000000000004756                SPIInit
 
 .text.ADCStartConversion
-                0x0000000000004386       0x2a
+                0x0000000000004782       0x2a
  .text.ADCStartConversion
-                0x0000000000004386       0x2a adc.o
-                0x0000000000004386                ADCStartConversion
+                0x0000000000004782       0x2a adc.o
+                0x0000000000004782                ADCStartConversion
 
 .text.I2CStartTransaction
-                0x00000000000043b0       0x28
+                0x00000000000047ac       0x28
  .text.I2CStartTransaction
-                0x00000000000043b0       0x28 I2c.o
-                0x00000000000043b0                I2CStartTransaction
+                0x00000000000047ac       0x28 I2c.o
+                0x00000000000047ac                I2CStartTransaction
 
 .text.CellDataConvert
-                0x00000000000043d8       0x28
+                0x00000000000047d4       0x28
  .text.CellDataConvert
-                0x00000000000043d8       0x28 main.o
+                0x00000000000047d4       0x28 main.o
 
 .text.PlatformGetSendData
-                0x0000000000004400       0x28
+                0x00000000000047fc       0x28
  .text.PlatformGetSendData
-                0x0000000000004400       0x28 main.o
-                0x0000000000004400                PlatformGetSendData
+                0x00000000000047fc       0x28 main.o
+                0x00000000000047fc                PlatformGetSendData
 
 .text.libgcc.div
-                0x0000000000004428       0x28
+                0x0000000000004824       0x28
  .text.libgcc.div
-                0x0000000000004428       0x28 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_udivmodhi4.o)
-                0x0000000000004428                __udivmodhi4
+                0x0000000000004824       0x28 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_udivmodhi4.o)
+                0x0000000000004824                __udivmodhi4
 
 .text.libgcc.div
-                0x0000000000004450       0x28
+                0x000000000000484c       0x28
  .text.libgcc.div
-                0x0000000000004450       0x28 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_divmodhi4.o)
-                0x0000000000004450                _div
-                0x0000000000004450                __divmodhi4
+                0x000000000000484c       0x28 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_divmodhi4.o)
+                0x000000000000484c                _div
+                0x000000000000484c                __divmodhi4
 
-.text.I2CStop   0x0000000000004478       0x26
- .text.I2CStop  0x0000000000004478       0x26 I2c.o
-                0x0000000000004478                I2CStop
+.text.I2CStop   0x0000000000004874       0x26
+ .text.I2CStop  0x0000000000004874       0x26 I2c.o
+                0x0000000000004874                I2CStop
 
 .text.ADCCallback
-                0x000000000000449e       0x26
+                0x000000000000489a       0x26
  .text.ADCCallback
-                0x000000000000449e       0x26 main.o
-                0x000000000000449e                ADCCallback
+                0x000000000000489a       0x26 main.o
+                0x000000000000489a                ADCCallback
 
 .text.__vector_1
-                0x00000000000044c4       0x24
+                0x00000000000048c0       0x24
  .text.__vector_1
-                0x00000000000044c4       0x24 main.o
-                0x00000000000044c4                __vector_1
+                0x00000000000048c0       0x24 main.o
+                0x00000000000048c0                __vector_1
 
 .text.__vector_2
-                0x00000000000044e8       0x24
+                0x00000000000048e4       0x24
  .text.__vector_2
-                0x00000000000044e8       0x24 main.o
-                0x00000000000044e8                __vector_2
+                0x00000000000048e4       0x24 main.o
+                0x00000000000048e4                __vector_2
 
 .text.__vector_3
-                0x000000000000450c       0x24
+                0x0000000000004908       0x24
  .text.__vector_3
-                0x000000000000450c       0x24 main.o
-                0x000000000000450c                __vector_3
+                0x0000000000004908       0x24 main.o
+                0x0000000000004908                __vector_3
 
 .text.__vector_4
-                0x0000000000004530       0x24
+                0x000000000000492c       0x24
  .text.__vector_4
-                0x0000000000004530       0x24 main.o
-                0x0000000000004530                __vector_4
+                0x000000000000492c       0x24 main.o
+                0x000000000000492c                __vector_4
 
 .text.__vector_5
-                0x0000000000004554       0x24
+                0x0000000000004950       0x24
  .text.__vector_5
-                0x0000000000004554       0x24 main.o
-                0x0000000000004554                __vector_5
+                0x0000000000004950       0x24 main.o
+                0x0000000000004950                __vector_5
 
 .text.__vector_6
-                0x0000000000004578       0x24
+                0x0000000000004974       0x24
  .text.__vector_6
-                0x0000000000004578       0x24 main.o
-                0x0000000000004578                __vector_6
+                0x0000000000004974       0x24 main.o
+                0x0000000000004974                __vector_6
 
 .text.__vector_22
-                0x000000000000459c       0x24
+                0x0000000000004998       0x24
  .text.__vector_22
-                0x000000000000459c       0x24 main.o
-                0x000000000000459c                __vector_22
+                0x0000000000004998       0x24 main.o
+                0x0000000000004998                __vector_22
 
 .text.__vector_9
-                0x00000000000045c0       0x24
+                0x00000000000049bc       0x24
  .text.__vector_9
-                0x00000000000045c0       0x24 main.o
-                0x00000000000045c0                __vector_9
+                0x00000000000049bc       0x24 main.o
+                0x00000000000049bc                __vector_9
 
 .text.__vector_11
-                0x00000000000045e4       0x24
+                0x00000000000049e0       0x24
  .text.__vector_11
-                0x00000000000045e4       0x24 main.o
-                0x00000000000045e4                __vector_11
+                0x00000000000049e0       0x24 main.o
+                0x00000000000049e0                __vector_11
 
 .text.__vector_13
-                0x0000000000004608       0x24
+                0x0000000000004a04       0x24
  .text.__vector_13
-                0x0000000000004608       0x24 main.o
-                0x0000000000004608                __vector_13
+                0x0000000000004a04       0x24 main.o
+                0x0000000000004a04                __vector_13
 
 .text.__vector_14
-                0x000000000000462c       0x24
+                0x0000000000004a28       0x24
  .text.__vector_14
-                0x000000000000462c       0x24 main.o
-                0x000000000000462c                __vector_14
+                0x0000000000004a28       0x24 main.o
+                0x0000000000004a28                __vector_14
 
 .text.__vector_17
-                0x0000000000004650       0x24
+                0x0000000000004a4c       0x24
  .text.__vector_17
-                0x0000000000004650       0x24 main.o
-                0x0000000000004650                __vector_17
+                0x0000000000004a4c       0x24 main.o
+                0x0000000000004a4c                __vector_17
 
 .text.__vector_19
-                0x0000000000004674       0x24
+                0x0000000000004a70       0x24
  .text.__vector_19
-                0x0000000000004674       0x24 main.o
-                0x0000000000004674                __vector_19
+                0x0000000000004a70       0x24 main.o
+                0x0000000000004a70                __vector_19
 
 .text.__vector_21
-                0x0000000000004698       0x24
+                0x0000000000004a94       0x24
  .text.__vector_21
-                0x0000000000004698       0x24 main.o
-                0x0000000000004698                __vector_21
+                0x0000000000004a94       0x24 main.o
+                0x0000000000004a94                __vector_21
 
 .text.__vector_25
-                0x00000000000046bc       0x24
+                0x0000000000004ab8       0x24
  .text.__vector_25
-                0x00000000000046bc       0x24 main.o
-                0x00000000000046bc                __vector_25
+                0x0000000000004ab8       0x24 main.o
+                0x0000000000004ab8                __vector_25
 
 .text.__vector_26
-                0x00000000000046e0       0x24
+                0x0000000000004adc       0x24
  .text.__vector_26
-                0x00000000000046e0       0x24 main.o
-                0x00000000000046e0                __vector_26
+                0x0000000000004adc       0x24 main.o
+                0x0000000000004adc                __vector_26
 
 .text.__vector_29
-                0x0000000000004704       0x24
+                0x0000000000004b00       0x24
  .text.__vector_29
-                0x0000000000004704       0x24 main.o
-                0x0000000000004704                __vector_29
+                0x0000000000004b00       0x24 main.o
+                0x0000000000004b00                __vector_29
 
 .text.__vector_30
-                0x0000000000004728       0x24
+                0x0000000000004b24       0x24
  .text.__vector_30
-                0x0000000000004728       0x24 main.o
-                0x0000000000004728                __vector_30
+                0x0000000000004b24       0x24 main.o
+                0x0000000000004b24                __vector_30
 
 .text.vUARTRXEnd
-                0x000000000000474c       0x24
+                0x0000000000004b48       0x24
  .text.vUARTRXEnd
-                0x000000000000474c       0x24 main.o
-                0x000000000000474c                vUARTRXEnd
+                0x0000000000004b48       0x24 main.o
+                0x0000000000004b48                vUARTRXEnd
 
 .text.vUARTtxDataAvailable
-                0x0000000000004770       0x24
+                0x0000000000004b6c       0x24
  .text.vUARTtxDataAvailable
-                0x0000000000004770       0x24 vUART.o
+                0x0000000000004b6c       0x24 vUART.o
 
-.text.SDGoIdle  0x0000000000004794       0x22
+.text.SDGoIdle  0x0000000000004b90       0x22
  .text.SDGoIdle
-                0x0000000000004794       0x22 SD.o
+                0x0000000000004b90       0x22 SD.o
 
-.text.libgcc    0x00000000000047b6       0x20
- .text.libgcc   0x00000000000047b6       0x20 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_negdi2.o)
-                0x00000000000047b6                __negdi2
-
-.text.libgcc.mul
-                0x00000000000047d6       0x1e
- .text.libgcc.mul
-                0x00000000000047d6       0x1e c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_umulhisi3.o)
-                0x00000000000047d6                __umulhisi3
+.text.libgcc    0x0000000000004bb2       0x20
+ .text.libgcc   0x0000000000004bb2       0x20 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_negdi2.o)
+                0x0000000000004bb2                __negdi2
 
 .text.libgcc.mul
-                0x00000000000047f4       0x1e
+                0x0000000000004bd2       0x1e
  .text.libgcc.mul
-                0x00000000000047f4       0x1e c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_mulsidi3.o)
-                0x00000000000047f4                __mulsidi3
+                0x0000000000004bd2       0x1e c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_umulhisi3.o)
+                0x0000000000004bd2                __umulhisi3
+
+.text.libgcc.mul
+                0x0000000000004bf0       0x1e
+ .text.libgcc.mul
+                0x0000000000004bf0       0x1e c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_mulsidi3.o)
+                0x0000000000004bf0                __mulsidi3
 
 .text.libgcc.div
-                0x0000000000004812       0x1c
+                0x0000000000004c0e       0x1c
  .text.libgcc.div
-                0x0000000000004812       0x1c c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_udivdi3.o)
-                0x0000000000004812                __umoddi3
-                0x0000000000004816                __udivdi3
-                0x0000000000004818                __udivdi3_umoddi3
+                0x0000000000004c0e       0x1c c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_udivdi3.o)
+                0x0000000000004c0e                __umoddi3
+                0x0000000000004c12                __udivdi3
+                0x0000000000004c14                __udivdi3_umoddi3
 
 .text.WatchdogOff
-                0x000000000000482e       0x1a
+                0x0000000000004c2a       0x1a
  .text.WatchdogOff
-                0x000000000000482e       0x1a main.o
-                0x000000000000482e                WatchdogOff
+                0x0000000000004c2a       0x1a main.o
+                0x0000000000004c2a                WatchdogOff
 
 .text.Check5VLoss
-                0x0000000000004848       0x18
+                0x0000000000004c44       0x18
  .text.Check5VLoss
-                0x0000000000004848       0x18 main.o
+                0x0000000000004c44       0x18 main.o
 
-.text.libgcc    0x0000000000004860       0x18
- .text.libgcc   0x0000000000004860       0x18 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_xload_4.o)
-                0x0000000000004860                __xload_4
+.text.libgcc    0x0000000000004c5c       0x18
+ .text.libgcc   0x0000000000004c5c       0x18 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_xload_4.o)
+                0x0000000000004c5c                __xload_4
 
-.text.libgcc    0x0000000000004878       0x18
- .text.libgcc   0x0000000000004878       0x18 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_adddi3_s8.o)
-                0x0000000000004878                __adddi3_s8
+.text.libgcc    0x0000000000004c74       0x18
+ .text.libgcc   0x0000000000004c74       0x18 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_adddi3_s8.o)
+                0x0000000000004c74                __adddi3_s8
 
 .text.CANSendMessage
-                0x0000000000004890       0x16
+                0x0000000000004c8c       0x16
  .text.CANSendMessage
-                0x0000000000004890       0x16 can.o
-                0x0000000000004890                CANSendMessage
+                0x0000000000004c8c       0x16 can.o
+                0x0000000000004c8c                CANSendMessage
 
 .text.ModuleControllerStateSetMax
-                0x00000000000048a6       0x16
+                0x0000000000004ca2       0x16
  .text.ModuleControllerStateSetMax
-                0x00000000000048a6       0x16 main.o
+                0x0000000000004ca2       0x16 main.o
 
 .text.vUARTRXStart
-                0x00000000000048bc       0x16
+                0x0000000000004cb8       0x16
  .text.vUARTRXStart
-                0x00000000000048bc       0x16 main.o
-                0x00000000000048bc                vUARTRXStart
+                0x0000000000004cb8       0x16 main.o
+                0x0000000000004cb8                vUARTRXStart
 
 .text.libgcc.mul
-                0x00000000000048d2       0x16
+                0x0000000000004cce       0x16
  .text.libgcc.mul
-                0x00000000000048d2       0x16 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_muluhisi3.o)
-                0x00000000000048d2                __muluhisi3
+                0x0000000000004cce       0x16 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_muluhisi3.o)
+                0x0000000000004cce                __muluhisi3
 
-.text.exit      0x00000000000048e8       0x16
- .text.exit     0x00000000000048e8       0x16 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(exit.o)
-                0x00000000000048e8                exit
+.text.exit      0x0000000000004ce4       0x16
+ .text.exit     0x0000000000004ce4       0x16 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(exit.o)
+                0x0000000000004ce4                exit
 
-.text.SDSetCS   0x00000000000048fe       0x14
- .text.SDSetCS  0x00000000000048fe       0x14 SD.o
+.text.SDSetCS   0x0000000000004cfa       0x14
+ .text.SDSetCS  0x0000000000004cfa       0x14 SD.o
 
 .text.vUARTInitReceive
-                0x0000000000004912       0x14
+                0x0000000000004d0e       0x14
  .text.vUARTInitReceive
-                0x0000000000004912       0x14 vUART.o
-                0x0000000000004912                vUARTInitReceive
+                0x0000000000004d0e       0x14 vUART.o
+                0x0000000000004d0e                vUARTInitReceive
 
 .text.EEPROMRead
-                0x0000000000004926       0x12
+                0x0000000000004d22       0x12
  .text.EEPROMRead
-                0x0000000000004926       0x12 EEPROM.o
-                0x0000000000004926                EEPROMRead
+                0x0000000000004d22       0x12 EEPROM.o
+                0x0000000000004d22                EEPROMRead
 
-.text.memset    0x0000000000004938       0x12
- .text.memset   0x0000000000004938       0x12 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(memset.o)
-                0x0000000000004938                memset
-
-.text.libgcc.mul
-                0x000000000000494a       0x12
- .text.libgcc.mul
-                0x000000000000494a       0x12 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_muldi3_6.o)
-                0x000000000000494a                __muldi3_6
-
-.text.libgcc    0x000000000000495c       0x12
- .text.libgcc   0x000000000000495c       0x12 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_adddi3.o)
-                0x000000000000495c                __adddi3
-
-.text.libgcc    0x000000000000496e       0x12
- .text.libgcc   0x000000000000496e       0x12 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_cmpdi2.o)
-                0x000000000000496e                __cmpdi2
-
-.text.libgcc.div
-                0x0000000000004980       0x10
- .text.libgcc.div
-                0x0000000000004980       0x10 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_negsi2.o)
-                0x0000000000004980                __negsi2
+.text.memset    0x0000000000004d34       0x12
+ .text.memset   0x0000000000004d34       0x12 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(memset.o)
+                0x0000000000004d34                memset
 
 .text.libgcc.mul
-                0x0000000000004990       0x10
+                0x0000000000004d46       0x12
  .text.libgcc.mul
-                0x0000000000004990       0x10 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_mulshisi3.o)
-                0x0000000000004990                __mulshisi3
-                0x0000000000004996                __mulohisi3
+                0x0000000000004d46       0x12 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_muldi3_6.o)
+                0x0000000000004d46                __muldi3_6
 
-.text.libgcc    0x00000000000049a0       0x10
- .text.libgcc   0x00000000000049a0       0x10 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_xload_2.o)
-                0x00000000000049a0                __xload_2
+.text.libgcc    0x0000000000004d58       0x12
+ .text.libgcc   0x0000000000004d58       0x12 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_adddi3.o)
+                0x0000000000004d58                __adddi3
 
-.text.DebugOut  0x00000000000049b0        0xe
- .text.DebugOut
-                0x00000000000049b0        0xe debugSerial.o
-                0x00000000000049b0                DebugOut
-
-.text.I2CBitDelay
-                0x00000000000049be        0xe
- .text.I2CBitDelay
-                0x00000000000049be        0xe I2c.o
-
-.text.SDWaitResponse7
-                0x00000000000049cc        0xe
- .text.SDWaitResponse7
-                0x00000000000049cc        0xe SD.o
-
-.text.libgcc.mul
-                0x00000000000049da        0xe
- .text.libgcc.mul
-                0x00000000000049da        0xe c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_usmulhisi3.o)
-                0x00000000000049da                __usmulhisi3
-                0x00000000000049de                __usmulhisi3_tail
-
-.text.ADCSetPowerOn
-                0x00000000000049e8        0xc
- .text.ADCSetPowerOn
-                0x00000000000049e8        0xc adc.o
-                0x00000000000049e8                ADCSetPowerOn
+.text.libgcc    0x0000000000004d6a       0x12
+ .text.libgcc   0x0000000000004d6a       0x12 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_cmpdi2.o)
+                0x0000000000004d6a                __cmpdi2
 
 .text.SendModuleControllerStatus
-                0x00000000000049f4        0xc
+                0x0000000000004d7c       0x10
  .text.SendModuleControllerStatus
-                0x00000000000049f4        0xc main.o
+                0x0000000000004d7c       0x10 main.o
+
+.text.libgcc.div
+                0x0000000000004d8c       0x10
+ .text.libgcc.div
+                0x0000000000004d8c       0x10 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_negsi2.o)
+                0x0000000000004d8c                __negsi2
+
+.text.libgcc.mul
+                0x0000000000004d9c       0x10
+ .text.libgcc.mul
+                0x0000000000004d9c       0x10 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_mulshisi3.o)
+                0x0000000000004d9c                __mulshisi3
+                0x0000000000004da2                __mulohisi3
+
+.text.libgcc    0x0000000000004dac       0x10
+ .text.libgcc   0x0000000000004dac       0x10 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_xload_2.o)
+                0x0000000000004dac                __xload_2
+
+.text.DebugOut  0x0000000000004dbc        0xe
+ .text.DebugOut
+                0x0000000000004dbc        0xe debugSerial.o
+                0x0000000000004dbc                DebugOut
+
+.text.I2CBitDelay
+                0x0000000000004dca        0xe
+ .text.I2CBitDelay
+                0x0000000000004dca        0xe I2c.o
+
+.text.SDWaitResponse7
+                0x0000000000004dd8        0xe
+ .text.SDWaitResponse7
+                0x0000000000004dd8        0xe SD.o
+
+.text.libgcc.mul
+                0x0000000000004de6        0xe
+ .text.libgcc.mul
+                0x0000000000004de6        0xe c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/avr5/memx-const\libgcc.a(_usmulhisi3.o)
+                0x0000000000004de6                __usmulhisi3
+                0x0000000000004dea                __usmulhisi3_tail
+
+.text.ADCSetPowerOn
+                0x0000000000004df4        0xc
+ .text.ADCSetPowerOn
+                0x0000000000004df4        0xc adc.o
+                0x0000000000004df4                ADCSetPowerOn
 
 .text.SetSysclock
-                0x0000000000004a00        0xc
+                0x0000000000004e00        0xc
  .text.SetSysclock
-                0x0000000000004a00        0xc main.o
-                0x0000000000004a00                SetSysclock
+                0x0000000000004e00        0xc main.o
+                0x0000000000004e00                SetSysclock
 
 .text.CANSetRXCallback
-                0x0000000000004a0c        0xa
+                0x0000000000004e0c        0xa
  .text.CANSetRXCallback
-                0x0000000000004a0c        0xa can.o
-                0x0000000000004a0c                CANSetRXCallback
+                0x0000000000004e0c        0xa can.o
+                0x0000000000004e0c                CANSetRXCallback
 
 .text.ModuleControllerStateSet
-                0x0000000000004a16        0xa
+                0x0000000000004e16        0xa
  .text.ModuleControllerStateSet
-                0x0000000000004a16        0xa main.o
+                0x0000000000004e16        0xa main.o
 
 .text.vUARTRXReset
-                0x0000000000004a20        0xa
+                0x0000000000004e20        0xa
  .text.vUARTRXReset
-                0x0000000000004a20        0xa vUART.o
-                0x0000000000004a20                vUARTRXReset
+                0x0000000000004e20        0xa vUART.o
+                0x0000000000004e20                vUARTRXReset
 
-.text.gmtime    0x0000000000004a2a        0xa
- .text.gmtime   0x0000000000004a2a        0xa c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime.o)
-                0x0000000000004a2a                gmtime
+.text.gmtime    0x0000000000004e2a        0xa
+ .text.gmtime   0x0000000000004e2a        0xa c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime.o)
+                0x0000000000004e2a                gmtime
 
 .text.PlatformGetRegistrationID
-                0x0000000000004a34        0x6
+                0x0000000000004e34        0x6
  .text.PlatformGetRegistrationID
-                0x0000000000004a34        0x6 main.o
-                0x0000000000004a34                PlatformGetRegistrationID
+                0x0000000000004e34        0x6 main.o
+                0x0000000000004e34                PlatformGetRegistrationID
 
-.text           0x0000000000004a3a        0x4
- .text          0x0000000000004a3a        0x4 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/xc8/avr/lib/avr5/memx-const/crtatmega64m1.o
-                0x0000000000004a3a                __vector_7
-                0x0000000000004a3a                __vector_20
-                0x0000000000004a3a                __bad_interrupt
+.text           0x0000000000004e3a        0x4
+ .text          0x0000000000004e3a        0x4 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/xc8/avr/lib/avr5/memx-const/crtatmega64m1.o
+                0x0000000000004e3a                __vector_7
+                0x0000000000004e3a                __vector_20
+                0x0000000000004e3a                __bad_interrupt
 
-.text._Exit     0x0000000000004a3e        0x4
- .text._Exit    0x0000000000004a3e        0x4 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(_Exit.o)
-                0x0000000000004a3e                _Exit
+.text._Exit     0x0000000000004e3e        0x4
+ .text._Exit    0x0000000000004e3e        0x4 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(_Exit.o)
+                0x0000000000004e3e                _Exit
 
 .text.WatchdogReset
-                0x0000000000004a42        0x2
+                0x0000000000004e42        0x2
  .text.WatchdogReset
-                0x0000000000004a42        0x2 main.o
-                0x0000000000004a42                WatchdogReset
+                0x0000000000004e42        0x2 main.o
+                0x0000000000004e42                WatchdogReset
 
 .text.__dummy_fini
-                0x0000000000004a44        0x2
+                0x0000000000004e44        0x2
  .text.__dummy_fini
-                0x0000000000004a44        0x2 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(exit.o)
-                0x0000000000004a44                _fini
+                0x0000000000004e44        0x2 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(exit.o)
+                0x0000000000004e44                _fini
 
 .text.__dummy_funcs_on_exit
-                0x0000000000004a46        0x2
+                0x0000000000004e46        0x2
  .text.__dummy_funcs_on_exit
-                0x0000000000004a46        0x2 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(exit.o)
-                0x0000000000004a46                __funcs_on_exit
+                0x0000000000004e46        0x2 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(exit.o)
+                0x0000000000004e46                __funcs_on_exit
 
 .text.__dummy_simulator_exit
-                0x0000000000004a48        0x2
+                0x0000000000004e48        0x2
  .text.__dummy_simulator_exit
-                0x0000000000004a48        0x2 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(exit.o)
-                0x0000000000004a48                __simulator_exit
+                0x0000000000004e48        0x2 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(exit.o)
+                0x0000000000004e48                __simulator_exit

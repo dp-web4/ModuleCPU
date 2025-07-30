@@ -171,6 +171,8 @@ static const SCANCmdReg sg_sRXCommandList[] =
 	{PKT_MODULE_STATE_CHANGE,	ECANMessageType_ModuleStateChangeRequest},
 	{PKT_MODULE_STATUS_REQUEST, ECANMessageType_ModuleStatusRequest},
 	{PKT_MODULE_HARDWARE_REQUEST, ECANMessageType_ModuleHardwareDetail},
+	{PKT_MODULE_ANNOUNCE_REQUEST, ECANMessageType_ModuleAnnounceRequest},
+	{PKT_MODULE_DEREGISTER,     ECANMessageType_ModuleDeRegister},
 	{PKT_MODULE_ALL_DEREGISTER, ECANMessageType_AllDeRegister},
 	{PKT_MODULE_ALL_ISOLATE,	ECANMessageType_AllIsolate},
 	{PKT_MODULE_SET_TIME,		ECANMessageType_SetTime},
@@ -201,9 +203,14 @@ static void CANMOBSet( uint8_t u8MOBIndex,
 {
 	uint8_t u8CANCDMOBValue;
 	uint32_t u32MessageID;
+	uint8_t savedCANGIE;
 	
 	MBASSERT( u8MOBIndex <= 5 );
 	MBASSERT( u8DataLen <= 8 );
+	
+	// Disable CAN interrupts during MOB configuration to prevent corruption
+	savedCANGIE = CANGIE;
+	CANGIE &= ~(1 << ENIT);
 	
 	// Set the MOB page, auto increment, and data index 0
 	CANPAGE = u8MOBIndex << 4;
@@ -262,6 +269,9 @@ static void CANMOBSet( uint8_t u8MOBIndex,
 	{
 		CANIE2 &= (uint8_t)~(1 << u8MOBIndex);
 	}
+	
+	// Restore CAN interrupts
+	CANGIE = savedCANGIE;
 }
 
 static void CANSendMessageInternal( ECANMessageType eType,
@@ -456,7 +466,7 @@ ISR(CAN_INT_vect, ISR_BLOCK)
 	uint8_t saved_canie2 = CANIE2;	// Temporarily disable CAN interrupts to prevent reentry
 	CANGIE &= (uint8_t)~(1 << ENIT);
 
-	sei();
+	// Do NOT re-enable global interrupts - this causes race conditions!
 	
 	 uint8_t sit = CANSIT2;
 	 

@@ -188,7 +188,7 @@ static uint8_t sg_u8CurrentBufferIndex;
 // read the status of FET EN on PC1 (inverted!)
 // an overtemp or overcurrent will drive /CLR and cause PC1 to go high, so a rising edge interrupt can be used to detect these events
 
-#define FET_EN_CONFIGURE()					PORTC &= ~  ((uint8_t) (1 << PIN_FET_EN)); DDRC |= ((uint8_t) (1 << PIN_FET_EN)); DDRC &= ~ ((uint8_t) (1 << PIN_OCF_N)) // set FET_EN as output and low, OCF_N as input
+#define FET_EN_CONFIGURE()					PORTC &= ~  ((uint8_t) (1 << PIN_FET_EN)); DDRC |= ((uint8_t) (1 << PIN_FET_EN)); DDRC &= ~ ((uint8_t) (1 << PIN_OCF_N)); DDRC |= ((uint8_t) (1 << PIN_FET_CK)) // set FET_EN as output and low, OCF_N as input, FET_CK as output
 #define FET_EN_ASSERT()						PORTC |= ((uint8_t) (1 << PIN_FET_EN)); PORTC &= ~ ((uint8_t) (1 << PIN_FET_CK)); PORTC |= ((uint8_t) (1 << PIN_FET_CK))  // set  FET_EN high, then drive flipflop clock low then high
 #define FET_EN_DEASSERT()					PORTC &= ~  ((uint8_t) (1 << PIN_FET_EN)) // asynchronously clear the flipflop
 #define FET_ASSERTED()						~(PINC & ((uint8_t) (1 << PIN_OCF_N)))  // pin is inverted
@@ -209,14 +209,20 @@ volatile static uint8_t __attribute__((section(".noinit"))) sg_u8CellStatus;
 
 volatile static bool __attribute__((section(".noinit"))) sg_bSendAnnouncement;			// true If we're sending a module announcement to the pack controller
 volatile static bool __attribute__((section(".noinit"))) sg_bModuleRegistered;			// true If we've received a registration ID from the pack controller
+volatile static bool sg_bAnnouncementPending = false;	// true if we need to send announcement after delay
+volatile static uint8_t sg_u8AnnouncementDelayTicks = 0;	// ticks remaining before sending announcement
 
 volatile static bool __attribute__((section(".noinit"))) sg_bSendTimeRequest;			// true If we want to send a "set time" command to the pack controller
 volatile static bool __attribute__((section(".noinit"))) sg_bPackControllerTimeout;		// true If we've not heard from a pack controller in PACK_CONTROLLER_TIMEOUT_MS
+
+// Cached unique ID to avoid repeated EEPROM reads during message formation
+// Module unique ID now stored directly in sg_sFrame.moduleUniqueId
 
 volatile static bool __attribute__((section(".noinit"))) sg_bSendModuleControllerStatus;
 volatile static bool __attribute__((section(".noinit"))) sg_bSendCellStatus;
 volatile static bool __attribute__((section(".noinit"))) sg_bSendHardwareDetail;
 volatile static bool __attribute__((section(".noinit"))) sg_bSendCellCommStatus;
+static bool sg_bIgnoreStatusRequests = false;  // Ignore new requests while sending
 volatile static bool __attribute__((section(".noinit"))) sg_bCellBalanceReady;
 volatile static bool __attribute__((section(".noinit"))) sg_bCellBalancedOnce;
 volatile static bool __attribute__((section(".noinit"))) sg_bStopDischarge;
@@ -547,6 +553,7 @@ static void SendModuleControllerStatus(void)
 {
 	sg_bSendModuleControllerStatus = true;
 	sg_u8ControllerStatusMsgCount = 0;
+	sg_bIgnoreStatusRequests = true;  // Start ignoring new requests
 }
 
 typedef enum
@@ -788,11 +795,12 @@ static void ModuleControllerStateHandle( void )
 {
 	EModuleControllerState eNext = sg_eModuleControllerStateTarget;
 	
+#ifndef STATE_CYCLE	
 	if ((eNext > sg_eModuleControllerStateMax) || (sg_eModuleControllerStateCurrent > sg_eModuleControllerStateMax) )  // technically should not occur but just in case
 	{
 		eNext = sg_eModuleControllerStateMax;
 	}
-	
+#endif	
 	// see if we need to transition
 	if ( eNext != sg_eModuleControllerStateCurrent)
 	{
@@ -870,7 +878,14 @@ static void ModuleControllerStateHandle( void )
 				PCICR &= (uint8_t) ~(1 << PCIE1);			// Bank C interrupt disable
 
 				// Turn on the relay (does nothing when transiting to off)
+#ifdef STATE_CYCLE
 				RELAY_EN_ASSERT();
+#else
+				// Safety check: only enable relay if module is registered
+				if (sg_bModuleRegistered) {
+					RELAY_EN_ASSERT();
+				}
+#endif
 				Delay((uint32_t) 5* (uint32_t) 1000); //must be shorter than WDT_LEASH_SHORT
 				// made it!
 
@@ -898,7 +913,14 @@ static void ModuleControllerStateHandle( void )
 				{					
 					WDTSetLeash(WDT_LEASH_SHORT,EWDT_MECH_RLY_ON);
 					// Turn on the relay 
+#ifdef STATE_CYCLE
 					RELAY_EN_ASSERT();
+#else
+					// Safety check: only enable relay if module is registered
+					if (sg_bModuleRegistered) {
+						RELAY_EN_ASSERT();
+					}
+#endif
 					// Give the relay time to settle so no power is applied
 					Delay((uint32_t) 5* (uint32_t) 1000);  //must be shorter than WDT_LEASH_SHORT
 					// made it!
@@ -909,7 +931,14 @@ static void ModuleControllerStateHandle( void )
 				{
 					WDTSetLeash(WDT_LEASH_SHORT,EWDT_FET_ON);
 
+#ifdef STATE_CYCLE
 					FET_EN_ASSERT();
+#else
+					// Safety check: only enable FET if module is registered
+					if (sg_bModuleRegistered) {
+						FET_EN_ASSERT();
+					}
+#endif
 					Delay((uint32_t) 1 * (uint32_t) 1000); // short pulses to save FET! - there is 5uS overhead so 5 will give 10
 					FET_EN_DEASSERT();
 
@@ -938,7 +967,14 @@ static void ModuleControllerStateHandle( void )
 				{
 					WDTSetLeash(WDT_LEASH_SHORT,EWDT_MECH_RLY_ON);
 					// Turn on the relay
+#ifdef STATE_CYCLE
 					RELAY_EN_ASSERT();
+#else
+					// Safety check: only enable relay if module is registered
+					if (sg_bModuleRegistered) {
+						RELAY_EN_ASSERT();
+					}
+#endif
 					// Give the relay time to settle so no power is applied
 					Delay((uint32_t) 5* (uint32_t) 1000);  //must be shorter than WDT_LEASH_SHORT
 					// made it!
@@ -946,7 +982,14 @@ static void ModuleControllerStateHandle( void )
 				
 				WDTSetLeash(WDT_LEASH_SHORT,EWDT_FET_ON);
 
+#ifdef STATE_CYCLE
 				FET_EN_ASSERT();  //overcurrent will set flag AND transition to STANDBY
+#else
+				// Safety check: only enable FET if module is registered
+				if (sg_bModuleRegistered) {
+					FET_EN_ASSERT();  //overcurrent will set flag AND transition to STANDBY
+				}
+#endif
 				Delay((uint32_t) 5* (uint32_t) 1000); //must be shorter than WDT_LEASH_SHORT
 				// made it!
 				WDTSetLeash(WDT_LEASH_LONG,EWDT_NORMAL);  
@@ -1059,7 +1102,7 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			// If the qualifiers match what was sent in the announcement, this is for us
 			if( (MANUFACTURE_ID == pu8Data[2]) &&
 				(PART_ID == pu8Data[3]) &&
-				(ModuleControllerGetUniqueID() == *((uint32_t *) &pu8Data[4])) )
+				(sg_sFrame.moduleUniqueId == *((uint32_t *) &pu8Data[4])) )
 			{
 				sg_u8TicksSinceLastPackControllerMessage = 0;
 				
@@ -1075,6 +1118,12 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 				
 				// Indicate our module controller is registered
 				sg_bModuleRegistered = true;
+				
+				DebugOut("RX Registration - Module ID=%02x registered successfully\r\n", u8RegID);
+				
+				// Cancel any pending announcement since we're now registered
+				sg_bAnnouncementPending = false;
+				sg_u8AnnouncementDelayTicks = 0;
 				
 				// And that we send a time request
 				sg_bSendTimeRequest = true;
@@ -1101,7 +1150,8 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			}
 				
 			// Handle commands that are only valid when registered
-			if ((bIsRegistered)  &&
+			// Note: For status requests, we re-check sg_bModuleRegistered in case we just got registered
+			if ((bIsRegistered || (ECANMessageType_ModuleStatusRequest == eType && sg_bModuleRegistered)) &&
 				(u8RegID == sg_u8ModuleRegistrationID))
 			{
 				// Since this message is for us, now check the type and length
@@ -1109,7 +1159,11 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 				{
 					if( 1 == u8DataLen )
 					{
-						SendModuleControllerStatus();
+						if (!sg_bIgnoreStatusRequests) {
+							DebugOut("RX Status Request - sending status\r\n");
+							SendModuleControllerStatus();
+						}
+						// else silently ignore - we're already sending
 					}
 				}
 			
@@ -1152,15 +1206,26 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 					// For hardware detail, the payload is irrelevant.
 					sg_bSendHardwareDetail = true;
 				}
+				else if( ECANMessageType_ModuleDeRegister == eType )
+				{
+					// Individual deregister for this module
+					DebugOut("RX Individual De-Register - module ID=%02x deregistered\r\n", u8RegID);
+					sg_u8ModuleRegistrationID = 0;
+					sg_bModuleRegistered = false;
+					sg_bIgnoreStatusRequests = false;  // Reset all status flags
+					ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
+				}
 			}
 			
 			// Handle commands that are global broadcasts and don't require 
 			// registration
-			if( ECANMessageType_AllDeRegister == eType )
+			else if( ECANMessageType_AllDeRegister == eType )
 			{
 				// Deregister this module
+				DebugOut("RX All De-Register - module deregistered\r\n");
 				sg_u8ModuleRegistrationID = 0;
 				sg_bModuleRegistered = false;
+				sg_bIgnoreStatusRequests = false;  // Reset all status flags
 				ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
 			}
 			else if( ECANMessageType_AllIsolate == eType )
@@ -1174,6 +1239,33 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			{
 				// Set time! From pack controller
 				RTCSetTime(*((uint64_t *) pu8Data));
+			}
+			else if( ECANMessageType_ModuleAnnounceRequest == eType )
+			{
+				// Pack controller is requesting announcements from unregistered modules
+				if (!sg_bModuleRegistered && !sg_bAnnouncementPending)
+				{
+					// Use last byte of unique ID as delay in milliseconds (0-255ms)
+					// This saves computation and works well for sequential IDs
+					uint8_t u8RandomDelay = (uint8_t)(sg_sFrame.moduleUniqueId & 0xFF);
+					
+					DebugOut("RX Announce Request (UNREGISTERED) - scheduling response in %dms\r\n", u8RandomDelay);
+					
+					// Schedule announcement after delay (assuming 10ms ticks)
+					sg_u8AnnouncementDelayTicks = u8RandomDelay / 10;  // Convert to 10ms ticks
+					if (sg_u8AnnouncementDelayTicks == 0) sg_u8AnnouncementDelayTicks = 1;  // Minimum 1 tick delay
+					sg_bAnnouncementPending = true;
+				}
+				else if (sg_bModuleRegistered)
+				{
+					// We're registered, ignore announce requests
+					DebugOut("RX Announce Request (REGISTERED) - ignoring\r\n");
+				}
+				else
+				{
+					// Announcement already pending, ignore duplicate request
+					DebugOut("RX Announce Request - already pending\r\n");
+				}
 			}
 		}
 	}
@@ -1730,6 +1822,7 @@ if(0)
 				// Stop status state machine
 				sg_u8ControllerStatusMsgCount = 0;
 				sg_bSendModuleControllerStatus = false;
+				sg_bIgnoreStatusRequests = false;  // Allow new requests again
 				
 				// Send the comms status
 				sg_bSendCellCommStatus = true;
@@ -2021,6 +2114,7 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 			memset(&sg_sFrame,0,sizeof(sg_sFrame)); // set all to 0
 			sg_sFrame.frameBytes = sizeof(sg_sFrame);
 			sg_sFrame.validSig = FRAME_VALID_SIG;
+			sg_sFrame.moduleUniqueId = ModuleControllerGetUniqueID();
 			sg_sFrame.sg_u8CellFirstI2CError = 0xff;
 			sg_sFrame.sg_u8CellCPUCountFewest = 0xff;
 			CellCountExpectedSet(EEPROMRead(EEPROM_EXPECTED_CELL_COUNT));
@@ -2133,6 +2227,7 @@ int main(void)
 #else
 		sg_bSDCardReady = false;  
 		sg_eStateCycle = EMODSTATE_OFF;
+		sg_u8StateCounter = 0;
 #endif
 	
 		// Set how many cells we're expecting	
@@ -2143,6 +2238,8 @@ int main(void)
 		// And how many sequential incorrect cell count until we reset the
 		// chain?
 		sg_u8SequentailCountMismatchThreshold = EEPROMRead(EEPROM_SEQUENTIAL_COUNT_MISMATCH);
+
+		// Cache the unique ID from EEPROM to avoid repeated reads during message formation
 
 		// Set 5V DET as input
 		DDR_5V_DET &= (uint8_t) ~(1 << PIN_5V_DET);
@@ -2172,6 +2269,8 @@ int main(void)
 	
 		sg_eModuleControllerStateCurrent = EMODSTATE_INIT;
 		sg_eModuleControllerStateTarget = STATE_DEFAULT;
+		sg_eModuleControllerStateMax = EMODSTATE_OFF;  // Initialize to OFF to prevent relay turning on at startup
+		sg_bModuleRegistered = false;  // Initialize to false to prevent relay/FET activation without registration
 		WDTSetLeash(WDT_LEASH_LONG, EWDT_NORMAL);  // set on long leash
 		sg_eFrameStatus = EFRAMETYPE_WRITE; // start on a write so that housekeeping gets done
 	}
@@ -2188,43 +2287,32 @@ int main(void)
 			sg_bNewTick = false;  // set tru in periodic tick isr, cleared in main loop
 			uint8_t u8Reply[CAN_STATUS_RESPONSE_SIZE];
 
-// 			uint8_t savedCANGIE = CANGIE;  // these are used to temporarily disable CAN ints 
-// 			CANGIE &= ~(1<< ENIT);
-//			bool bIsRegistered = sg_bModuleRegistered;
-// 			CANGIE = savedCANGIE;
-		
-			// Only consider sending statuses if we have a valid registration ID
-			if( sg_bModuleRegistered )
+			// Clear separation of registered vs unregistered behavior
+			if (!sg_bModuleRegistered)
 			{
-				// Send controller status messages
-				ControllerStatusMessagesSend(u8Reply);
+				// Not registered - handle announcement delays
+				if (sg_bAnnouncementPending)
+				{
+					if (sg_u8AnnouncementDelayTicks > 0)
+					{
+						sg_u8AnnouncementDelayTicks--;
+					}
+					
+					if (sg_u8AnnouncementDelayTicks == 0)
+					{
+						// Time to send the announcement
+						sg_bSendAnnouncement = true;
+						sg_bAnnouncementPending = false;
+						DebugOut("Announcement delay complete - sending\r\n");
+					}
+				}
 			}
 			else
 			{
-				sg_bSendAnnouncement = true;
+				// Registered - handle normal operations
+				// Send controller status messages
+				ControllerStatusMessagesSend(u8Reply);
 			}
-			// Send a module announcement if unregistered
-		
-			if( sg_bSendAnnouncement )
-			{
-				bool bSent;
-
-				// Reply with general status
-				u8Reply[0] = (uint8_t) FW_BUILD_NUMBER;
-				u8Reply[1] = (uint8_t) (FW_BUILD_NUMBER >> 8);
-				u8Reply[2] = MANUFACTURE_ID;
-				u8Reply[3] = PART_ID;
-				*((uint32_t*)&u8Reply[4]) = ModuleControllerGetUniqueID();
-			
-				bSent = CANSendMessage( ECANMessageType_ModuleAnnouncement, u8Reply, CAN_STATUS_RESPONSE_SIZE );
-
-				if( bSent )
-				{
-					sg_bSendAnnouncement = false;
-				}
-			}
-			// Only send the announcement if the module isn't registered
-			// disable can interrupts as they seem to result in misreading of status
 
 
 		
@@ -2237,6 +2325,7 @@ int main(void)
 // 				savedCANGIE = CANGIE;  // these are used to temporarily disable CAN ints
 // 				CANGIE &= ~(1<< ENIT);
 				sg_bModuleRegistered = false;
+				sg_bIgnoreStatusRequests = false;  // Reset all status flags
 // 				CANGIE = savedCANGIE;			
 			
 				sg_bSendAnnouncement = true;			// Send an announcement to hasten registration
@@ -2296,8 +2385,32 @@ int main(void)
 							sg_u8SequentailCellCountMismatches = 0;
 						}
 					}
+					
+					if( sg_bSendAnnouncement )  //we should announce ourselves
+					{
+						bool bSent;
+
+						// Reply with general status
+						u8Reply[0] = (uint8_t) FW_BUILD_NUMBER;
+						u8Reply[1] = (uint8_t) (FW_BUILD_NUMBER >> 8);
+						u8Reply[2] = MANUFACTURE_ID;
+						u8Reply[3] = PART_ID;
+						*((uint32_t*)&u8Reply[4]) = sg_sFrame.moduleUniqueId;
+			
+						bSent = CANSendMessage( ECANMessageType_ModuleAnnouncement, u8Reply, CAN_STATUS_RESPONSE_SIZE );
+
+						if( bSent )
+						{
+							sg_bSendAnnouncement = false;
+						}
+					// Send a module announcement if unregistered
+		
+					}
+					// Only send the announcement if the module isn't registered
+					// disable can interrupts as they seem to result in misreading of status
+					
 	
-				}
+				}  //end of write frame start code
 			
 				// the following is done continuously while in WRITE frame
 
@@ -2313,24 +2426,27 @@ int main(void)
 
 
 				// This code will cycle through all of the states once every
-				// STATE_CYCLE_INTERVAL seconds
-	#ifdef STATE_CYCLE			
-				sg_u8StateCounter++;
-				if (sg_u8StateCounter >= STATE_CYCLE_INTERVAL)
+				// STATE_CYCLE_INTERVAL frames
+	#ifdef STATE_CYCLE
+				if(bFrameStart) // Only increment once per frame, not continuously
 				{
-					sg_u8StateCounter = 0;
-
-					if (sg_eStateCycle >= EMODSTATE_ON)
+					sg_u8StateCounter++;
+					if (sg_u8StateCounter >= STATE_CYCLE_INTERVAL)
 					{
-						sg_eStateCycle = EMODSTATE_OFF;  //turn off sequence and delays handled by state handler
+						sg_u8StateCounter = 0;
+
+						if (sg_eStateCycle >= EMODSTATE_ON)
+						{
+							sg_eStateCycle = EMODSTATE_OFF;  //turn off sequence and delays handled by state handler
+						}
+						else
+						{
+							sg_eStateCycle++;
+						} 
+
+						// Now set the new state
+						ModuleControllerStateSet(sg_eStateCycle);
 					}
-					else
-					{
-						sg_eStateCycle++;
-					} 
-
-					// Now set the new state
-					ModuleControllerStateSet(sg_eStateCycle);
 				}
 	#endif
 		

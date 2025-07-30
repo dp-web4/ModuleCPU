@@ -50,6 +50,7 @@ typedef struct __attribute__((aligned(4))) {
 	uint32_t validSig;  // if != FRAME_VALID_SIG then frame is not valid
 	uint16_t frameBytes;  // actual number of bytes per frame, for diagnostics
 	uint64_t timestamp;
+	uint32_t moduleUniqueId;  // unique ID for this module (from EEPROM)
 	
 // session variables, survive frame write	
 	uint8_t sg_u8WDTCount;  // number of WDT resets in current session
