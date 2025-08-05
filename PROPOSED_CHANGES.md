@@ -1,102 +1,139 @@
-# Fix Status Request Race Condition - Both Sides
+# Persistent Module Records with Registration Status
 
-## Pack Controller Changes
+## Better Solution: Persistent Module Records
+Instead of removing modules from the array, keep them and track registration status. This handles intermittent modules gracefully.
 
-### 1. Add status tracking to module structure
-In `/mnt/c/projects/ai-agents/Pack-Controller-EEPROM/Core/Inc/mcu.h`, add to `moduleData` structure:
+## Implementation
+
+### 1. Add registration status to module structure
+In `/mnt/c/projects/ai-agents/Pack-Controller-EEPROM/Core/Inc/bms.h`:
 ```c
-uint8_t statusMessagesReceived;  // Bitmask: bit0=Status1, bit1=Status2, bit2=Status3
+typedef struct {
+  // ... existing fields ...
+  bool        isRegistered;     // Module currently registered
+  // ... rest of fields ...
+}batteryModule;
 ```
 
-### 2. Modify MCU_ProcessModuleStatus1/2/3
-In `/mnt/c/projects/ai-agents/Pack-Controller-EEPROM/Core/Src/mcu.c`:
-
+### 2. Modify deregistration to just mark as unregistered
+In PCU_Tasks timeout handling (~line 357):
 ```c
-// In MCU_ProcessModuleStatus1 (after line 1527):
-// Track which status message was received
-module[moduleIndex].statusMessagesReceived |= (1 << 0);  // Status1 received
+// Instead of removing from array:
+// Mark module as deregistered
+module[index].isRegistered = false;
 
-// In MCU_ProcessModuleStatus2 (after line 1631):
-module[moduleIndex].statusMessagesReceived |= (1 << 1);  // Status2 received
-
-// In MCU_ProcessModuleStatus3 (after line 1705):
-module[moduleIndex].statusMessagesReceived |= (1 << 2);  // Status3 received
-
-// Only clear statusPending when all 3 received
-if(module[moduleIndex].statusMessagesReceived == 0x07) {  // All 3 bits set
-    module[moduleIndex].statusPending = false;
-    module[moduleIndex].statusMessagesReceived = 0;  // Reset for next time
-}
+// Don't shift array or change pack.moduleCount
+// Continue to next module without adjusting index
 ```
 
-### 3. Reset status tracking when sending request
-In `MCU_RequestModuleStatus()` (after setting statusPending = true):
+### 3. Update registration logic
+In MCU_RegisterModule (~line 1040):
 ```c
-module[moduleIndex].statusMessagesReceived = 0;  // Clear previous status bits
-```
-
-### 4. Handle timeout with partial messages
-In timeout handling (line ~338), also clear the status bits:
-```c
-module[index].statusMessagesReceived = 0;  // Clear any partial status
-```
-
-## Module Controller Changes
-
-### 1. Add ignore flag
-In `/mnt/c/projects/ai-agents/modulecpu/main.c`, add near other status flags (around line 240):
-```c
-static bool sg_bIgnoreStatusRequests = false;  // Ignore new requests while sending
-```
-
-### 2. Set flag when starting status sequence
-In `SendModuleControllerStatus()` (after line 554):
-```c
-sg_bSendModuleControllerStatus = true;
-sg_u8ControllerStatusMsgCount = 0;
-sg_bIgnoreStatusRequests = true;  // Start ignoring new requests
-```
-
-### 3. Clear flag when sequence completes or fails
-In `ControllerStatusMessagesSend()`:
-
-After successful completion (line ~1817):
-```c
-sg_bSendModuleControllerStatus = false;
-sg_bIgnoreStatusRequests = false;  // Allow new requests again
-```
-
-On send failure (in the error handling):
-```c
-// If we fail to send, keep ignoring requests - wait for deregistration
-if( false == bSent )
-{
-    bStatusSendSuccessful = false;
-    // DO NOT clear sg_bIgnoreStatusRequests here
-    // Let pack controller timeout and deregister us
-}
-```
-
-### 4. Check flag in status request handler
-In CAN callback where PKT_MODULE_STATUS_REQUEST is handled:
-```c
-case PKT_MODULE_STATUS_REQUEST:
-    if (!sg_bIgnoreStatusRequests) {
-        SendModuleControllerStatus();
+// Check if module already exists (registered or not)
+moduleIndex = MAX_MODULES_PER_PACK; // Invalid index
+for(index = 0; index < MAX_MODULES_PER_PACK; index++){
+    if(module[index].uniqueId == announcement.moduleUniqueId){
+        moduleIndex = index;
+        break;
     }
-    // else silently ignore - we're already sending
-    break;
+}
+
+if(moduleIndex < MAX_MODULES_PER_PACK){
+    // Existing module - just mark as registered
+    module[moduleIndex].isRegistered = true;
+    module[moduleIndex].faultCode.commsError = 0;
+    // ... reset timeouts etc
+    
+    if(debugMessages & DBG_MSG_ANNOUNCE){
+        sprintf(tempBuffer,"MCU INFO - Module RE-REGISTERED: Index=%d, ID=%02x, UID=%08x",
+                moduleIndex, module[moduleIndex].moduleId, announcement.moduleUniqueId);
+        serialOut(tempBuffer);
+    }
+}
+else {
+    // New module - find first empty slot
+    for(index = 0; index < MAX_MODULES_PER_PACK; index++){
+        if(module[index].uniqueId == 0){  // Empty slot
+            moduleIndex = index;
+            break;
+        }
+    }
+    
+    if(moduleIndex < MAX_MODULES_PER_PACK){
+        // Initialize new module
+        module[moduleIndex].moduleId = moduleIndex + 1;  // ID = index + 1
+        module[moduleIndex].uniqueId = announcement.moduleUniqueId;
+        module[moduleIndex].isRegistered = true;
+        // ... rest of initialization
+        
+        // Update pack.moduleCount to highest registered module
+        pack.moduleCount = 0;
+        for(int i = 0; i < MAX_MODULES_PER_PACK; i++){
+            if(module[i].isRegistered && module[i].uniqueId != 0){
+                pack.moduleCount++;
+            }
+        }
+    }
+}
 ```
 
-### 5. Clear flag on deregistration
-When module is deregistered:
+### 4. Update all module iterations to check registration
+Everywhere we iterate through modules:
 ```c
-sg_bModuleRegistered = false;
-sg_bIgnoreStatusRequests = false;  // Reset all status flags
+for(index = 0; index < MAX_MODULES_PER_PACK; index++){
+    if(!module[index].isRegistered || module[index].uniqueId == 0) continue;
+    // ... process module
+}
 ```
 
-## Testing
-1. Verify module sends all 3 status messages without restart
-2. Verify pack controller waits for all 3 before clearing statusPending
-3. Verify timeout still works if module fails mid-sequence
-4. Verify deregistration clears all flags properly
+### 5. Update module finding functions
+```c
+uint8_t MCU_ModuleIndexFromId(uint8_t moduleId){
+    for(index = 0; index < MAX_MODULES_PER_PACK; index++){
+        if(module[index].moduleId == moduleId && module[index].isRegistered)
+            return index;
+    }
+    return MAX_MODULES_PER_PACK; // Not found
+}
+```
+
+## Benefits
+1. Module IDs never change once assigned
+2. Handles intermittent connections gracefully
+3. No array shifting complications
+4. Module history is preserved
+5. Can track metrics across connect/disconnect cycles
+6. Simpler logic overall
+
+## Module Counting
+```c
+// Add to pack structure:
+uint8_t totalModules;    // Count of all modules ever seen (non-empty slots)
+uint8_t activeModules;   // Count of currently registered modules
+
+// Update counts whenever registration changes:
+void MCU_UpdateModuleCounts(void){
+    pack.totalModules = 0;
+    pack.activeModules = 0;
+    
+    for(int i = 0; i < MAX_MODULES_PER_PACK; i++){
+        if(module[i].uniqueId != 0){
+            pack.totalModules++;
+            if(module[i].isRegistered){
+                pack.activeModules++;
+            }
+        }
+    }
+}
+```
+
+When reporting to host controller:
+- Total modules = all modules that have ever connected (pack.totalModules)
+- Active modules = currently registered modules (pack.activeModules)
+- This helps diagnose intermittent connection issues
+
+## Notes
+- pack.moduleCount can be deprecated or repurposed
+- Module slots are reused based on unique ID
+- Empty slots have uniqueId = 0
+- Host sees both "modules that exist" and "modules currently online"
