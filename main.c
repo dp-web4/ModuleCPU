@@ -1092,8 +1092,79 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 // 	CANGIE &= ~(1<< ENIT);
 	bool bIsRegistered = sg_bModuleRegistered;
 // 	CANGIE = savedCANGIE;
+
+	sg_u8TicksSinceLastPackControllerMessage = 0;  // got a can message, reset timeout
+	// Handle commands that are global broadcasts and don't require 
+	// registration first
+
+	if( ECANMessageType_MaxState == eType )  // heartbeat message, most frequent every 200ms
+	{
+		uint8_t u8State = pu8Data[0] & 0xf;  // Fixed: MaxState is at byte 0, not byte 1
+		#ifndef STATE_CYCLE  //ignore CAN commands when cycling
+		// Change state
+		ModuleControllerStateSetMax( u8State );
+		#endif
+		return;  // done here
+	}
+
+	if( ECANMessageType_AllDeRegister == eType )  // deregister all
+	{
+		// Deregister this module
+		DebugOut("RX All De-Register - module deregistered\r\n");
+		sg_u8ModuleRegistrationID = 0;
+		sg_bModuleRegistered = false;
+		sg_bIgnoreStatusRequests = false;  // Reset all status flags
+		ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
+		return;  // done here
+	}
+	
+	if( ECANMessageType_AllIsolate == eType ) // isolate all
+	{
+#ifndef STATE_CYCLE  //ignore CAN commands when cycling
+		// Isolate this module now
+		ModuleControllerStateSet( EMODSTATE_OFF);
+#endif
+		return;  // done here
+	}	
+			
+	if( ECANMessageType_SetTime == eType )  // set time
+	{
+		// Set time! From pack controller
+		RTCSetTime(*((uint64_t *) pu8Data));
+		return;  // done here
+	}
+
+	if( ECANMessageType_ModuleAnnounceRequest == eType )
+	{
+		// Pack controller is requesting announcements from unregistered modules
+		if (!sg_bModuleRegistered && !sg_bAnnouncementPending)
+		{
+			// Use last byte of unique ID as delay in milliseconds (0-255ms)
+			// This saves computation and works well for sequential IDs
+			uint8_t u8RandomDelay = (uint8_t)(sg_sFrame.moduleUniqueId & 0xFF);
+			
+			DebugOut("RX Announce Request (UNREGISTERED) - scheduling response in %dms\r\n", u8RandomDelay);
+					
+			// Schedule announcement after delay (assuming 10ms ticks)
+			sg_u8AnnouncementDelayTicks = u8RandomDelay / 10;  // Convert to 10ms ticks
+			if (sg_u8AnnouncementDelayTicks == 0) sg_u8AnnouncementDelayTicks = 1;  // Minimum 1 tick delay
+			sg_bAnnouncementPending = true;
+		}
+		else if (sg_bModuleRegistered)
+		{
+			// We're registered, ignore announce requests
+			DebugOut("RX Announce Request (REGISTERED) - ignoring\r\n");
+		}
+		else
+		{
+			// Announcement already pending, ignore duplicate request
+			DebugOut("RX Announce Request - already pending\r\n");
+		}
+		return;  // done here
+	}
+
 		
-	if( ECANMessageType_ModuleRegistration == eType )
+	if( ECANMessageType_ModuleRegistration == eType )  // handle registration
 	{
 		if( 8 == u8DataLen )
 		{
@@ -1129,143 +1200,93 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 				sg_bSendTimeRequest = true;
 			}
 		}
+		return;  // done here
 	}
-	else
+
+	//process module-specific messages here, require being registered
+	if (u8DataLen >= 1)  // data needs to be at least one (ID is first)
 	{
-		uint8_t u8RegID = pu8Data[0];
+		uint8_t u8RegID = pu8Data[0];  // ID is first byte in module-specific messages
 	
 		// First check the registration ID matches ours	and is non-zero
-		if (u8DataLen >= 1)
+		// Handle commands that are only valid when registered
+		// Note: For status requests, we re-check sg_bModuleRegistered in case we just got registered
+		if ((bIsRegistered || (ECANMessageType_ModuleStatusRequest == eType && sg_bModuleRegistered)) &&
+			(u8RegID == sg_u8ModuleRegistrationID))
 		{
-			sg_u8TicksSinceLastPackControllerMessage = 0;
+			// Since this message is for us, now check the type and length
 			
-			// see if this is a heartbeat message, most frequent!  process max state even if not registered
-			if( ECANMessageType_MaxState == eType )
+			// status request
+			if( ECANMessageType_ModuleStatusRequest == eType )
 			{
-					uint8_t u8State = pu8Data[0] & 0xf;  // Fixed: MaxState is at byte 0, not byte 1
-					#ifndef STATE_CYCLE  //ignore CAN commands when cycling
-					// Change state
-					ModuleControllerStateSetMax( u8State );
-					#endif
-			}
-				
-			// Handle commands that are only valid when registered
-			// Note: For status requests, we re-check sg_bModuleRegistered in case we just got registered
-			if ((bIsRegistered || (ECANMessageType_ModuleStatusRequest == eType && sg_bModuleRegistered)) &&
-				(u8RegID == sg_u8ModuleRegistrationID))
-			{
-				// Since this message is for us, now check the type and length
-				if( ECANMessageType_ModuleStatusRequest == eType )
+				if( 1 == u8DataLen )
 				{
-					if( 1 == u8DataLen )
-					{
-						if (!sg_bIgnoreStatusRequests) {
-							DebugOut("RX Status Request - sending status\r\n");
-							SendModuleControllerStatus();
-						}
-						// else silently ignore - we're already sending
+					if (!sg_bIgnoreStatusRequests) {
+						DebugOut("RX Status Request - sending status\r\n");
+						SendModuleControllerStatus();
 					}
+					// else silently ignore - we're already sending
 				}
+				return;
+			}
 			
-				else if( ECANMessageType_ModuleCellDetailRequest == eType )
+			// detail request
+			if( ECANMessageType_ModuleCellDetailRequest == eType )
+			{
+				if( 3 == u8DataLen )
 				{
-					if( 3 == u8DataLen )
+					// If not already replying and this is a valid cell number, schedule response
+					if( (false == sg_bSendCellStatus) && (pu8Data[1] < sg_sFrame.sg_u8CellCountExpected) )
 					{
-						// If not already replying and this is a valid cell number, schedule response
-						if( (false == sg_bSendCellStatus) && (pu8Data[1] < sg_sFrame.sg_u8CellCountExpected) )
+						sg_u8CellStatus = pu8Data[1];
+						sg_u8CellStatusTarget = sg_u8CellStatus;
+						
+						if (CELL_DETAIL_ALL == pu8Data[1])
 						{
-							sg_u8CellStatus = pu8Data[1];
-							sg_u8CellStatusTarget = sg_u8CellStatus;
-						
-							if (CELL_DETAIL_ALL == pu8Data[1])
-							{
-								// We're sending all cells
-								sg_u8CellStatusTarget = sg_sFrame.sg_u8CellCountExpected;
-								sg_u8CellStatus = 0;
-							}
-						
-							// We're sending cell statuses!
-							sg_bSendCellStatus = true;
+							// We're sending all cells
+							sg_u8CellStatusTarget = sg_sFrame.sg_u8CellCountExpected;
+							sg_u8CellStatus = 0;
 						}
+						
+						// We're sending cell statuses!
+						sg_bSendCellStatus = true;
 					}
 				}
-				else if( ECANMessageType_ModuleStateChangeRequest == eType )
-				{
-					sg_u8TicksSinceLastPackControllerMessage = 0;
-					if( 2 == u8DataLen )
-					{
-						uint8_t u8State = pu8Data[1] & 0xf;
-#ifndef STATE_CYCLE  //ignore CAN commands when cycling			
-						// Change state
-						ModuleControllerStateSet( u8State );
-#endif
-					}
-				}
-				else if( ECANMessageType_ModuleHardwareDetail == eType )
-				{
-					// For hardware detail, the payload is irrelevant.
-					sg_bSendHardwareDetail = true;
-				}
-				else if( ECANMessageType_ModuleDeRegister == eType )
-				{
-					// Individual deregister for this module
-					DebugOut("RX Individual De-Register - module ID=%02x deregistered\r\n", u8RegID);
-					sg_u8ModuleRegistrationID = 0;
-					sg_bModuleRegistered = false;
-					sg_bIgnoreStatusRequests = false;  // Reset all status flags
-					ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
-				}
+				return;
 			}
 			
-			// Handle commands that are global broadcasts and don't require 
-			// registration
-			else if( ECANMessageType_AllDeRegister == eType )
+			// state change request
+			if( ECANMessageType_ModuleStateChangeRequest == eType )
 			{
-				// Deregister this module
-				DebugOut("RX All De-Register - module deregistered\r\n");
+				sg_u8TicksSinceLastPackControllerMessage = 0;
+				if( 2 == u8DataLen )
+				{
+					uint8_t u8State = pu8Data[1] & 0xf;
+#ifndef STATE_CYCLE  //ignore CAN commands when cycling			
+					// Change state
+					ModuleControllerStateSet( u8State );
+#endif
+				}
+				return;
+			}
+
+			// hardware detail request
+			if( ECANMessageType_ModuleHardwareDetail == eType )
+			{
+				// For hardware detail, the payload is irrelevant.
+				sg_bSendHardwareDetail = true;
+				return;
+			}
+			
+			// deregister just this module
+			if( ECANMessageType_ModuleDeRegister == eType )
+			{
+				// Individual deregister for this module
+				DebugOut("RX Individual De-Register - module ID=%02x deregistered\r\n", u8RegID);
 				sg_u8ModuleRegistrationID = 0;
 				sg_bModuleRegistered = false;
 				sg_bIgnoreStatusRequests = false;  // Reset all status flags
 				ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
-			}
-			else if( ECANMessageType_AllIsolate == eType )
-			{
-#ifndef STATE_CYCLE  //ignore CAN commands when cycling
-				// Isolate this module now
-				ModuleControllerStateSet( EMODSTATE_OFF);
-#endif
-			}			
-			else if( ECANMessageType_SetTime == eType )
-			{
-				// Set time! From pack controller
-				RTCSetTime(*((uint64_t *) pu8Data));
-			}
-			else if( ECANMessageType_ModuleAnnounceRequest == eType )
-			{
-				// Pack controller is requesting announcements from unregistered modules
-				if (!sg_bModuleRegistered && !sg_bAnnouncementPending)
-				{
-					// Use last byte of unique ID as delay in milliseconds (0-255ms)
-					// This saves computation and works well for sequential IDs
-					uint8_t u8RandomDelay = (uint8_t)(sg_sFrame.moduleUniqueId & 0xFF);
-					
-					DebugOut("RX Announce Request (UNREGISTERED) - scheduling response in %dms\r\n", u8RandomDelay);
-					
-					// Schedule announcement after delay (assuming 10ms ticks)
-					sg_u8AnnouncementDelayTicks = u8RandomDelay / 10;  // Convert to 10ms ticks
-					if (sg_u8AnnouncementDelayTicks == 0) sg_u8AnnouncementDelayTicks = 1;  // Minimum 1 tick delay
-					sg_bAnnouncementPending = true;
-				}
-				else if (sg_bModuleRegistered)
-				{
-					// We're registered, ignore announce requests
-					DebugOut("RX Announce Request (REGISTERED) - ignoring\r\n");
-				}
-				else
-				{
-					// Announcement already pending, ignore duplicate request
-					DebugOut("RX Announce Request - already pending\r\n");
-				}
 			}
 		}
 	}

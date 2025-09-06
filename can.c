@@ -62,7 +62,7 @@ static const SMOBDef sg_sMOBGenericReceive =
 	CAN_RXONLY,
 	false,
 	0x500,
-	0x500,
+	0x700,  // Mask: 0x700 = bits 10:8 must match, allowing only 0x500-0x5FF
 	false,
 	false,
 };
@@ -384,6 +384,8 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 				uint8_t u8Index = 0;
 			
 				// Grab the messageID from the identifier registers
+				// TODO: This extraction may be wrong for extended frames
+				// but it worked with the real Pack Controller somehow
 				u16ID = ((uint16_t)CANIDT1) << 3;
 				u16ID |= CANIDT2 >> 5;
 			
