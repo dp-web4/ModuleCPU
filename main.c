@@ -1142,7 +1142,7 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			// see if this is a heartbeat message, most frequent!  process max state even if not registered
 			if( ECANMessageType_MaxState == eType )
 			{
-					uint8_t u8State = pu8Data[1] & 0xf;
+					uint8_t u8State = pu8Data[0] & 0xf;  // Fixed: MaxState is at byte 0, not byte 1
 					#ifndef STATE_CYCLE  //ignore CAN commands when cycling
 					// Change state
 					ModuleControllerStateSetMax( u8State );
