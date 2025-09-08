@@ -565,7 +565,7 @@ typedef enum
 	ESTRING_OPERATIONAL
 } EStringPowerState;
 
-static volatile EStringPowerState sg_eStringPowerState = ESTRING_INIT;
+static volatile EStringPowerState __attribute__((section(".noinit"))) sg_eStringPowerState;
 
 // This handles power state changes for the cell string
 static void CellStringPowerStateMachine(void)  // this is called at the start of each READ and WRITE frame
@@ -2292,6 +2292,7 @@ int main(void)
 		sg_eModuleControllerStateTarget = STATE_DEFAULT;
 		sg_eModuleControllerStateMax = EMODSTATE_OFF;  // Initialize to OFF to prevent relay turning on at startup
 		sg_bModuleRegistered = false;  // Initialize to false to prevent relay/FET activation without registration
+		sg_eStringPowerState = ESTRING_INIT;  // Initialize cell string power state machine
 		WDTSetLeash(WDT_LEASH_LONG, EWDT_NORMAL);  // set on long leash
 		sg_eFrameStatus = EFRAMETYPE_WRITE; // start on a write so that housekeeping gets done
 	}
