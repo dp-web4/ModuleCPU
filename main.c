@@ -7,6 +7,9 @@
  * rights reserved
  */
 
+// Define to use fake cell data for testing MODULE_DETAIL responses
+#define FAKE_CELL_DATA
+
 #include <stdint.h>
 #include <xc.h>
 #include <stdbool.h>
