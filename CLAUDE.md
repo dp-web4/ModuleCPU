@@ -60,6 +60,9 @@ This is especially critical when debugging timing-sensitive embedded systems whe
 - Variables in `.noinit` section are there to survive watchdog resets during relay switching
 - These variables must be properly initialized on power-on but preserved across WDT resets
 - Always consider EMI-induced resets when making changes
+- **NO DEBUG OUTPUT**: The ModuleCPU does not have debug output capability (no DebugOut functions)
+  - Do not add any DebugOut, DebugOutUint8, etc. calls - they don't exist
+  - Debug must be done through CAN messages or LED indicators only
 
 ## Recent Safety Improvements (July 29, 2025)
 

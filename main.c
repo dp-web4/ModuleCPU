@@ -1235,16 +1235,6 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			{
 				if( 3 == u8DataLen )
 				{
-					DebugOut("RX Cell Detail Request - Module:");
-					DebugOutUint8(pu8Data[0]);
-					DebugOut(" Cell:");
-					DebugOutUint8(pu8Data[1]);
-					DebugOut(" CellCPUCount:");
-					DebugOutUint8(sg_sFrame.sg_u8CellCPUCount);
-					DebugOut(" Expected:");
-					DebugOutUint8(sg_sFrame.sg_u8CellCountExpected);
-					DebugOut("\r\n");
-					
 					// If not already replying and this is a valid cell number, schedule response
 					if( (false == sg_bSendCellStatus) && (pu8Data[1] < sg_sFrame.sg_u8CellCountExpected) )
 					{
@@ -1260,18 +1250,6 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 						
 						// We're sending cell statuses!
 						sg_bSendCellStatus = true;
-						DebugOut("  Scheduled cell detail response\r\n");
-					}
-					else
-					{
-						if (sg_bSendCellStatus)
-						{
-							DebugOut("  Already sending cell status\r\n");
-						}
-						else if (pu8Data[1] >= sg_sFrame.sg_u8CellCountExpected)
-						{
-							DebugOut("  Cell ID out of range\r\n");
-						}
 					}
 				}
 				return;
@@ -1883,30 +1861,18 @@ if(0)
 		uint16_t u16Voltage = 0;
 		int16_t s16Temperature = 0;
 		
-		DebugOut("Sending cell detail - Cell:");
-		DebugOutUint8(sg_u8CellStatus);
-		DebugOut(" CPUCount:");
-		DebugOutUint8(sg_sFrame.sg_u8CellCPUCount);
-		DebugOut("\r\n");
-		
 		// Check if this cell has actual data
 		if (sg_u8CellStatus < sg_sFrame.sg_u8CellCPUCount)
 		{
 			// Lookup current cell details
 			// Post-process the cell data to be returned
 			CellDataConvert( &sg_sFrame.StringData[sg_u8CellStatus], &u16Voltage, &s16Temperature);
-			DebugOut("  Cell has data: V=");
-			DebugOutUint16(u16Voltage);
-			DebugOut(" T=");
-			DebugOutInt16(s16Temperature);
-			DebugOut("\r\n");
 		}
 		else
 		{
 			// Cell hasn't reported - send zeros
 			u16Voltage = 0;
 			s16Temperature = 0;
-			DebugOut("  Cell has no data - sending zeros\r\n");
 		}
 		
 		// Always send the response, even for non-communicating cells
@@ -1948,22 +1914,13 @@ if(0)
 		bSuccess = CANSendMessage( ECANMessageType_ModuleCellDetail, pu8Response, CAN_STATUS_RESPONSE_SIZE );
 		if( bSuccess )
 		{
-			DebugOut("  Sent MODULE_DETAIL for cell ");
-			DebugOutUint8(sg_u8CellStatus);
-			DebugOut("\r\n");
-			
 			// Success! Advance to the next cell (if applicable) and shut off
 			// transmission if we've reached our target.
 			sg_u8CellStatus++;
 			if (sg_u8CellStatus >= sg_u8CellStatusTarget)
 			{
 				sg_bSendCellStatus = false;
-				DebugOut("  Completed cell detail sequence\r\n");
 			}
-		}
-		else
-		{
-			DebugOut("  Failed to send MODULE_DETAIL\r\n");
 		}
 	}
 		
