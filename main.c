@@ -8,7 +8,7 @@
  */
 
 // Define to use fake cell data for testing MODULE_DETAIL responses
-#define FAKE_CELL_DATA
+// #define FAKE_CELL_DATA
 
 #include <stdint.h>
 #include <xc.h>
@@ -2157,21 +2157,28 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 		}
 		else  // do only if partial init, in full init the memset takes care of all this
 		{
-			sg_sFrame.sg_u32CellVoltageTotal = 0;		// All cell CPU voltages added up (in millivolts)
-			sg_sFrame.sg_u16HighestCellVoltage = 0;
-			sg_sFrame.sg_u16LowestCellVoltage = 0;
-			sg_sFrame.sg_u16AverageCellVoltage = 0;
+			// Don't clear min/max/avg statistics - they should persist until new data arrives
+			// Only clear the raw cell data and counts
 			memset(&sg_sFrame.StringData,0,sizeof(sg_sFrame.StringData)); // set all to 0
 			sg_sFrame.bDischargeOn = false;
 			sg_sFrame.sg_u16CellCPUI2CErrors = 0;
 			sg_sFrame.sg_u8CellFirstI2CError = 0;
 			sg_sFrame.sg_u8CellCPUCount = 0;     // for the frame
 			sg_sFrame.sg_u8MCRXFramingErrors = 0;
+			
+			// Only reset voltage/temp stats if we have no valid data
+			// This prevents the alternating zero issue when status is polled
+			if (sg_sFrame.sg_u32CellVoltageTotal == 0)
+			{
+				sg_sFrame.sg_u32CellVoltageTotal = 0;		// All cell CPU voltages added up (in millivolts)
+				sg_sFrame.sg_u16HighestCellVoltage = 0;
+				sg_sFrame.sg_u16LowestCellVoltage = 0;
+				sg_sFrame.sg_u16AverageCellVoltage = 0;
+				sg_sFrame.sg_s16HighestCellTemp = TEMPERATURE_BASE;	// 0C default, in case we get no readings
+				sg_sFrame.sg_s16LowestCellTemp = TEMPERATURE_BASE;		// 0C default, in case we get no readings
+				sg_sFrame.sg_s16AverageCellTemp = TEMPERATURE_BASE;	// 0C default, in case we get no readings
+			}
 		}
-		
-		sg_sFrame.sg_s16HighestCellTemp = TEMPERATURE_BASE;	// 0C default, in case we get no readings
-		sg_sFrame.sg_s16LowestCellTemp = TEMPERATURE_BASE;		// 0C default, in case we get no readings
-		sg_sFrame.sg_s16AverageCellTemp = TEMPERATURE_BASE;	// 0C default, in case we get no readings
 		
 		// initialize other housekeeping
 		sg_u8CurrentBufferIndex=0xff;  // this indicates the buffer is empty, to be filled with first reading
