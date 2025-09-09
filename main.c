@@ -1235,6 +1235,16 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			{
 				if( 3 == u8DataLen )
 				{
+					DebugOut("RX Cell Detail Request - Module:");
+					DebugOutUint8(pu8Data[0]);
+					DebugOut(" Cell:");
+					DebugOutUint8(pu8Data[1]);
+					DebugOut(" CellCPUCount:");
+					DebugOutUint8(sg_sFrame.sg_u8CellCPUCount);
+					DebugOut(" Expected:");
+					DebugOutUint8(sg_sFrame.sg_u8CellCountExpected);
+					DebugOut("\r\n");
+					
 					// If not already replying and this is a valid cell number, schedule response
 					if( (false == sg_bSendCellStatus) && (pu8Data[1] < sg_sFrame.sg_u8CellCountExpected) )
 					{
@@ -1250,6 +1260,18 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 						
 						// We're sending cell statuses!
 						sg_bSendCellStatus = true;
+						DebugOut("  Scheduled cell detail response\r\n");
+					}
+					else
+					{
+						if (sg_bSendCellStatus)
+						{
+							DebugOut("  Already sending cell status\r\n");
+						}
+						else if (pu8Data[1] >= sg_sFrame.sg_u8CellCountExpected)
+						{
+							DebugOut("  Cell ID out of range\r\n");
+						}
 					}
 				}
 				return;
@@ -1860,6 +1882,12 @@ if(0)
 		bool bSuccess;
 		uint16_t u16Voltage = 0;
 		int16_t s16Temperature = 0;
+		
+		DebugOut("Sending cell detail - Cell:");
+		DebugOutUint8(sg_u8CellStatus);
+		DebugOut(" CPUCount:");
+		DebugOutUint8(sg_sFrame.sg_u8CellCPUCount);
+		DebugOut("\r\n");
 			
 		// Only send data if this cell is in range
 		if (sg_u8CellStatus < sg_sFrame.sg_u8CellCPUCount)
@@ -1906,6 +1934,11 @@ if(0)
 		else
 		{
 			// We're beyond the available cells we have - just set to 0
+			DebugOut("  Cell ");
+			DebugOutUint8(sg_u8CellStatus);
+			DebugOut(" beyond available cells (");
+			DebugOutUint8(sg_sFrame.sg_u8CellCPUCount);
+			DebugOut("), stopping\r\n");
 			sg_u8CellStatusTarget = 0;
 			sg_u8CellStatus = 0;
 			sg_bSendCellStatus = false;
