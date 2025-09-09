@@ -1415,16 +1415,28 @@ static bool CellDataConvertVoltage( uint16_t u16CellData,
 	
 	u16Voltage &= ((1 << (CELL_VOLTAGE_BITS)) - 1);		// Mask off anything we aren't using
 	
+	// TEMPORARY: Comment out range check to diagnose MODULE_DETAIL issue
+	// The stats show good min/max/avg but MODULE_DETAIL returns zeros
+	// This suggests the raw values might be outside expected range
+	#if 0  // Temporarily disabled for debugging
 	if ((u16Voltage < MIN_VALID_CELL_VOLTAGE) || (u16Voltage > MAX_VALID_CELL_VOLTAGE))  // see if we are in range
 	{
 		bCellDataValid = false;  // something got messed up
 		u16Voltage = 0;  //
 	}
 	else
+	#endif
 	{
 		// Convert from # of scale of the ADC to the nondivided voltage range, in millivolts
 		uint32_t temp = (uint32_t)u16Voltage * VOLTAGE_CONVERSION_FACTOR;
 		u16Voltage = (uint16_t)((temp / ADC_MAX_VALUE + FIXED_POINT_SCALE/2) / FIXED_POINT_SCALE);
+		
+		// Still check for completely invalid values (0 or 0xFFFF)
+		if (u16Voltage == 0 || u16Voltage == 0xFFFF)
+		{
+			bCellDataValid = false;
+			u16Voltage = 0;
+		}
 	}
 	// Return the values if pointers nonzero
 	if( pu16Voltage )
@@ -1870,6 +1882,17 @@ if(0)
 			// Lookup current cell details
 			// Post-process the cell data to be returned
 			CellDataConvert( &sg_sFrame.StringData[sg_u8CellStatus], &u16Voltage, &s16Temperature);
+			
+			// DEBUG: If we got zeros but we have valid stats, check raw data
+			if (u16Voltage == 0 && sg_sFrame.sg_u16AverageCellVoltage > 0)
+			{
+				// Send the raw values to see what's in StringData
+				CellData* pCellData = &sg_sFrame.StringData[sg_u8CellStatus];
+				// Send raw voltage in temperature field (low 16 bits)
+				s16Temperature = (int16_t)pCellData->voltage;
+				// Send raw temperature in voltage field (for debugging)
+				u16Voltage = (uint16_t)pCellData->temperature;
+			}
 		}
 		else
 		{
