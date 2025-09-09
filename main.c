@@ -1876,8 +1876,10 @@ if(0)
 		uint16_t u16Voltage = 0;
 		int16_t s16Temperature = 0;
 		
-		// Check if this cell has actual data
-		if (sg_u8CellStatus < sg_sFrame.sg_u8CellCPUCount)
+		// Check if this cell index has valid data in StringData
+		// We check against expected count since sg_u8CellCPUCount gets reset to 0
+		// Also check that the cell has non-zero voltage (indicates it has reported)
+		if (sg_u8CellStatus < sg_sFrame.sg_u8CellCountExpected)
 		{
 			// Use raw values directly like CalculateStats() does
 			// The data in StringData is already in the correct format
@@ -1888,7 +1890,7 @@ if(0)
 			// Clear the discharge bit if present
 			u16Voltage &= ~MSG_CELL_DISCHARGE_ACTIVE;
 			
-			// Convert to millivolts (cells send in 0.001V units)
+			// If voltage is 0, the cell hasn't reported
 			// Temperature is already in the correct format
 		}
 		else
