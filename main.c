@@ -2179,9 +2179,9 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 		}
 		else  // do only if partial init, in full init the memset takes care of all this
 		{
-			// Don't clear min/max/avg statistics - they should persist until new data arrives
-			// Only clear the raw cell data and counts
-			memset(&sg_sFrame.StringData,0,sizeof(sg_sFrame.StringData)); // set all to 0
+			// Don't clear StringData - it should persist across frames
+			// This contains the last received cell data and is needed for MODULE_DETAIL responses
+			// memset(&sg_sFrame.StringData,0,sizeof(sg_sFrame.StringData)); // REMOVED - don't clear cell data
 			sg_sFrame.bDischargeOn = false;
 			sg_sFrame.sg_u16CellCPUI2CErrors = 0;
 			sg_sFrame.sg_u8CellFirstI2CError = 0;

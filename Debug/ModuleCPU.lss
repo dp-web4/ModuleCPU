@@ -4293,7 +4293,7 @@ Disassembly of section .text.ControllerStatusMessagesSend:
  a1a:	88 23       	and	r24, r24
  a1c:	09 f4       	brne	.+2      	; 0xa20 <ControllerStatusMessagesSend+0x210>
  a1e:	6d c0       	rjmp	.+218    	; 0xafa <ControllerStatusMessagesSend+0x2ea>
- a20:	90 91 3d 01 	lds	r25, 0x013D	; 0x80013d <sg_sFrame+0x2d>
+ a20:	90 91 25 01 	lds	r25, 0x0125	; 0x800125 <sg_sFrame+0x15>
  a24:	80 91 23 03 	lds	r24, 0x0323	; 0x800323 <sg_u8CellStatus>
  a28:	89 17       	cp	r24, r25
  a2a:	d0 f4       	brcc	.+52     	; 0xa60 <ControllerStatusMessagesSend+0x250>
