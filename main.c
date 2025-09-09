@@ -1888,60 +1888,82 @@ if(0)
 		DebugOut(" CPUCount:");
 		DebugOutUint8(sg_sFrame.sg_u8CellCPUCount);
 		DebugOut("\r\n");
-			
-		// Only send data if this cell is in range
+		
+		// Check if this cell has actual data
 		if (sg_u8CellStatus < sg_sFrame.sg_u8CellCPUCount)
 		{
 			// Lookup current cell details
 			// Post-process the cell data to be returned
-			CellDataConvert( &sg_sFrame.StringData[sg_u8CellStatus], &u16Voltage, &s16Temperature);  
-				
-			// First byte is the cell ID
-			pu8Response[0] = sg_u8CellStatus;
-				
-			// Expected total cell count
-			pu8Response[1] = sg_sFrame.sg_u8CellCountExpected;
-				
-			// Cell temperature
-				
-			pu8Response[2] = (uint8_t) s16Temperature;
-			pu8Response[3] = (uint8_t) (s16Temperature >> 8);
-				
-			// Cell voltage
-			pu8Response[4] = (uint8_t) u16Voltage;
-			pu8Response[5] = (uint8_t) (u16Voltage >> 8);
+			CellDataConvert( &sg_sFrame.StringData[sg_u8CellStatus], &u16Voltage, &s16Temperature);
+			DebugOut("  Cell has data: V=");
+			DebugOutUint16(u16Voltage);
+			DebugOut(" T=");
+			DebugOutInt16(s16Temperature);
+			DebugOut("\r\n");
+		}
+		else
+		{
+			// Cell hasn't reported - send zeros
+			u16Voltage = 0;
+			s16Temperature = 0;
+			DebugOut("  Cell has no data - sending zeros\r\n");
+		}
+		
+		// Always send the response, even for non-communicating cells
+		// First byte is the cell ID
+		pu8Response[0] = sg_u8CellStatus;
+		
+		// Expected total cell count
+		pu8Response[1] = sg_sFrame.sg_u8CellCountExpected;
+		
+		// Cell temperature
+		pu8Response[2] = (uint8_t) s16Temperature;
+		pu8Response[3] = (uint8_t) (s16Temperature >> 8);
+		
+		// Cell voltage
+		pu8Response[4] = (uint8_t) u16Voltage;
+		pu8Response[5] = (uint8_t) (u16Voltage >> 8);
 
-// TODO need to write dedicated routines for SOC and SOH, these should also derate max charge and discharge currents
-			// State of charge (% up to 4.1 volts)
+		// State of charge (% up to 4.1 volts) - avoid divide by zero
+		if (u16Voltage > 0)
+		{
 			pu8Response[6] = (((uint32_t) u16Voltage / (uint32_t) (4100.0)) * (uint32_t) 100.0);
-				
-			// State of health
+		}
+		else
+		{
+			pu8Response[6] = 0;
+		}
+		
+		// State of health - avoid divide by zero
+		if ((sg_sFrame.sg_u16HighestCellVoltage > sg_sFrame.sg_u16LowestCellVoltage) && (u16Voltage > 0))
+		{
 			pu8Response[7] = ((uint32_t) u16Voltage / (uint32_t) (sg_sFrame.sg_u16HighestCellVoltage - sg_sFrame.sg_u16LowestCellVoltage) * (uint32_t) 100.0);
-				
-			// Reply with a cell detail
-			bSuccess = CANSendMessage( ECANMessageType_ModuleCellDetail, pu8Response, CAN_STATUS_RESPONSE_SIZE );
-			if( bSuccess )
+		}
+		else
+		{
+			pu8Response[7] = 0;
+		}
+		
+		// Reply with a cell detail
+		bSuccess = CANSendMessage( ECANMessageType_ModuleCellDetail, pu8Response, CAN_STATUS_RESPONSE_SIZE );
+		if( bSuccess )
+		{
+			DebugOut("  Sent MODULE_DETAIL for cell ");
+			DebugOutUint8(sg_u8CellStatus);
+			DebugOut("\r\n");
+			
+			// Success! Advance to the next cell (if applicable) and shut off
+			// transmission if we've reached our target.
+			sg_u8CellStatus++;
+			if (sg_u8CellStatus >= sg_u8CellStatusTarget)
 			{
-				// Success! Advance to the next cell (if applicable) and shut off
-				// transmission if we've reached our target.
-				sg_u8CellStatus++;
-				if (sg_u8CellStatus >= sg_u8CellStatusTarget)
-				{
-					sg_bSendCellStatus = false;
-				}
+				sg_bSendCellStatus = false;
+				DebugOut("  Completed cell detail sequence\r\n");
 			}
 		}
 		else
 		{
-			// We're beyond the available cells we have - just set to 0
-			DebugOut("  Cell ");
-			DebugOutUint8(sg_u8CellStatus);
-			DebugOut(" beyond available cells (");
-			DebugOutUint8(sg_sFrame.sg_u8CellCPUCount);
-			DebugOut("), stopping\r\n");
-			sg_u8CellStatusTarget = 0;
-			sg_u8CellStatus = 0;
-			sg_bSendCellStatus = false;
+			DebugOut("  Failed to send MODULE_DETAIL\r\n");
 		}
 	}
 		
