@@ -1892,10 +1892,18 @@ if(0)
 				u16Voltage = 0;
 			}
 			
-			// Convert temperature using CellDataConvertTemperature
-			if (!CellDataConvertTemperature(s16RawTemp, &s16Temperature))
+			// For temperature, we need to check if it's valid but NOT convert it again
+			// The stats already have converted temperatures, but individual cells need conversion
+			// Since we're getting the raw value from StringData, we need to convert it
+			if (CellDataConvertTemperature(s16RawTemp, NULL))  // Just check validity
 			{
-				// Invalid temperature, send 0
+				// Temperature is valid, now convert it properly for MODULE_DETAIL
+				// Actually convert the temperature for the response
+				CellDataConvertTemperature(s16RawTemp, &s16Temperature);
+			}
+			else
+			{
+				// Invalid temperature
 				s16Temperature = 0;
 			}
 		}
