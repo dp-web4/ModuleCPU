@@ -1879,20 +1879,17 @@ if(0)
 		// Check if this cell has actual data
 		if (sg_u8CellStatus < sg_sFrame.sg_u8CellCPUCount)
 		{
-			// Lookup current cell details
-			// Post-process the cell data to be returned
-			CellDataConvert( &sg_sFrame.StringData[sg_u8CellStatus], &u16Voltage, &s16Temperature);
+			// Use raw values directly like CalculateStats() does
+			// The data in StringData is already in the correct format
+			u16Voltage = sg_sFrame.StringData[sg_u8CellStatus].voltage;
+			s16Temperature = sg_sFrame.StringData[sg_u8CellStatus].temperature;
 			
-			// DEBUG: If we got zeros but we have valid stats, check raw data
-			if (u16Voltage == 0 && sg_sFrame.sg_u16AverageCellVoltage > 0)
-			{
-				// Send the raw values to see what's in StringData
-				CellData* pCellData = &sg_sFrame.StringData[sg_u8CellStatus];
-				// Send raw voltage in temperature field (low 16 bits)
-				s16Temperature = (int16_t)pCellData->voltage;
-				// Send raw temperature in voltage field (for debugging)
-				u16Voltage = (uint16_t)pCellData->temperature;
-			}
+			// Process the values the same way CalculateStats() does
+			// Clear the discharge bit if present
+			u16Voltage &= ~MSG_CELL_DISCHARGE_ACTIVE;
+			
+			// Convert to millivolts (cells send in 0.001V units)
+			// Temperature is already in the correct format
 		}
 		else
 		{
