@@ -2189,6 +2189,7 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 			sg_sFrame.moduleUniqueId = ModuleControllerGetUniqueID();
 			sg_sFrame.sg_u8CellFirstI2CError = 0xff;
 			sg_sFrame.sg_u8CellCPUCountFewest = 0xff;
+			sg_sFrame.sg_u8CellCPUCountMost = 0;  // Explicitly init to 0 (should already be 0 from memset, but being explicit)
 			CellCountExpectedSet(EEPROMRead(EEPROM_EXPECTED_CELL_COUNT));
 		}
 		else  // do only if partial init, in full init the memset takes care of all this
