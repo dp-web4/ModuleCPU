@@ -1,4 +1,127 @@
-# Persistent Module Records with Registration Status
+# VUART Edge-Triggered Timing Correction Proposal
+
+## Current Implementation Analysis
+
+The current VUART receive implementation:
+1. **Start bit detection**: INT1 interrupt on falling edge (start bit)
+2. **Initial timing**: Sets timer to `VUART_BIT_TICKS + VUART_BIT_START_OFSET` to sample middle of first data bit
+3. **Subsequent bits**: Timer fires every `VUART_BIT_TICKS - VUART_BIT_TICK_OFFSET` to sample remaining bits
+4. **Fixed timing**: No adjustment during byte reception - relies on initial synchronization
+
+### Current Timing Constants
+- `VUART_BIT_START_OFSET = 9`: Added to first bit timing
+- `VUART_BIT_TICK_OFFSET = 7`: Subtracted from subsequent bit timings
+
+## Problem Statement
+
+Current implementation has no mechanism to correct for:
+- Clock frequency differences between sender and receiver
+- Timing drift during multi-byte transfers
+- Jitter in the signal
+- Temperature-induced clock variations
+
+## Proposed Solution: Edge-Triggered Timing Correction
+
+### 1. Core Concept
+During data bit reception, detect edges (transitions) and use them to resynchronize the sampling timer to maintain center-of-bit sampling.
+
+### 2. Implementation Approach
+
+#### A. Add Edge Detection During Bit Reception
+```c
+// In TIMER0_COMPB ISR, after sampling the bit:
+bool bData = IS_PIN_RX_ASSERTED();
+
+// Detect edge (transition from previous bit)
+if (bData != sg_bCell_mc_rxPriorState) {
+    // Edge detected - calculate timing error
+    uint8_t currentTimer = TCNT0;
+    uint8_t expectedTimer = OCR0B - (VUART_BIT_TICKS/2);
+    int8_t timingError = currentTimer - expectedTimer;
+    
+    // Apply correction if significant
+    if (abs(timingError) > TIMING_TOLERANCE) {
+        // Adjust next sample time to recenter
+        OCR0B = TCNT0 + (VUART_BIT_TICKS/2) - (timingError/2);
+    }
+    
+    // Update statistics
+    if (timingError < sg_minTimingError) sg_minTimingError = timingError;
+    if (timingError > sg_maxTimingError) sg_maxTimingError = timingError;
+}
+```
+
+#### B. New Variables Required
+```c
+// Timing correction statistics
+static int8_t sg_minTimingError;     // Minimum timing error seen
+static int8_t sg_maxTimingError;     // Maximum timing error seen
+static uint16_t sg_edgeCorrections;  // Count of corrections applied
+static uint8_t sg_lastEdgeTimer;     // Timer value at last edge
+
+// Configuration
+#define TIMING_TOLERANCE 3    // Only correct if error > 3 timer ticks
+#define MAX_CORRECTION 5      // Maximum correction per edge (prevent oscillation)
+```
+
+#### C. Statistics Reset
+```c
+// In vUARTInitReceive() or when starting new reception:
+sg_minTimingError = 127;
+sg_maxTimingError = -128;
+sg_edgeCorrections = 0;
+```
+
+### 3. Alternative Approaches Considered
+
+#### Option A: Full PLL-style tracking (Complex)
+- Continuously adjust sampling rate based on average edge timing
+- More complex but potentially more accurate
+- Risk: May overcorrect for noise
+
+#### Option B: Simple edge resync (Proposed above - Moderate)
+- Adjust timing only when edges detected
+- Balance between simplicity and effectiveness
+- Lower risk of instability
+
+#### Option C: Edge validation before correction (Conservative)
+- Only correct if multiple consecutive edges show similar error
+- Most stable but may miss short-term corrections
+- Best for noisy environments
+
+### 4. Benefits
+1. **Improved reliability**: Better tolerance for clock differences
+2. **Self-correcting**: Automatically compensates for drift
+3. **Diagnostic data**: Error statistics help identify problematic modules
+4. **Backwards compatible**: No protocol changes required
+
+### 5. Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Edge noise causes false corrections | Data corruption | Add edge validation/filtering |
+| Overcorrection causes oscillation | Timing instability | Limit maximum correction per edge |
+| Extra processing in ISR | Missed bits | Keep correction logic minimal |
+| Statistics overflow | Memory corruption | Use appropriate data types |
+
+### 6. Testing Plan
+1. Test with known clock offset (±5% frequency difference)
+2. Test with temperature cycling (clock drift)
+3. Test with noise injection on RX line
+4. Verify statistics collection accuracy
+5. Performance testing (ISR execution time)
+
+## Recommendation
+
+Implement **Option B (Simple edge resync)** as it provides:
+- Good improvement in reliability
+- Moderate complexity
+- Low risk of instability
+- Easy to debug with statistics
+
+---
+
+# Previous Content: Persistent Module Records with Registration Status
 
 ## Better Solution: Persistent Module Records
 Instead of removing modules from the array, keep them and track registration status. This handles intermittent modules gracefully.

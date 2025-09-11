@@ -98,6 +98,16 @@ static volatile bool sg_bCellReportsReuested;
 // And the next bit we want to transmit
 static volatile bool sg_bMCTxNextBit;
 
+// Edge-triggered timing correction variables
+static volatile int8_t sg_minTimingError;      // Minimum timing error seen (in timer ticks)
+static volatile int8_t sg_maxTimingError;      // Maximum timing error seen (in timer ticks)
+static volatile uint16_t sg_edgeCorrections;   // Count of corrections applied
+static volatile uint8_t sg_lastEdgeTimer;      // Timer value at last edge
+
+// Timing correction configuration
+#define TIMING_TOLERANCE 3      // Only correct if error > 3 timer ticks
+#define MAX_CORRECTION 5        // Maximum correction per edge (prevent oscillation)
+
 static volatile uint8_t sg_u8SendIndex;						// Index to be sent next
 static volatile uint8_t sg_u8SendData[2];					// Storage for value to be sent
 
@@ -234,24 +244,25 @@ bool vUARTStarttx(void)
 
 static bool sg_bState;
 
-// Pin change interrupt - detecting start bit
+// Pin change interrupt - detecting start bit OR timing correction edges
 ISR(INT1_vect, ISR_BLOCK)
 {
-	// Program up the timer to interrupt about 1 bit's worth, which
-	// puts it almost in the center of the next bit. The added value 
-	// is empirically measured to ensure the sample of the first
-	// bit is in the middle of the bit time.
-	
-	// microseconds and accounts for CPU/interrupt/preamble overhead.
-	TIMER_CHB_INT( VUART_BIT_TICKS + (VUART_BIT_START_OFSET));  
-	
-	// If RX is asserted then the start has occurred
-//	if( IS_PIN_RX_ASSERTED() )
-if (1)
+	// Check if this is a start bit or an edge during reception
+	if (sg_eCell_mc_rxState == ESTATE_IDLE || sg_eCell_mc_rxState == ESTATE_NEXT_BYTE)
 	{
+		// This is a start bit - initialize reception
 		
-		// Stop rx pin change interrupts
-		VUART_RX_DISABLE();
+		// Program up the timer to interrupt about 1 bit's worth, which
+		// puts it almost in the center of the next bit. The added value 
+		// is empirically measured to ensure the sample of the first
+		// bit is in the middle of the bit time.
+		
+		// microseconds and accounts for CPU/interrupt/preamble overhead.
+		TIMER_CHB_INT( VUART_BIT_TICKS + (VUART_BIT_START_OFSET));  
+		
+		// Switch to any-edge detection for timing correction
+		VUART_RX_ANY_EDGE();
+		// Note: interrupt remains enabled for edge detection during reception
 	
 		if (sg_bState)
 		{
@@ -267,6 +278,7 @@ if (1)
 		// Set the state machine to receive data
 		sg_eCell_mc_rxState = ESTATE_RX_DATA;
 		sg_u8Cell_mc_rxBitCount = 0;
+		
 #ifdef PauseCAN		
 	    // Save CAN state
 	    sg_u8SavedCANState = CANGIE;
@@ -274,13 +286,41 @@ if (1)
 	    CANGIE &= ~(1 << ENIT);
 #endif
 	}
-	else
+	else if (sg_eCell_mc_rxState == ESTATE_RX_DATA && sg_u8Cell_mc_rxBitCount > 0)
 	{
-		// Just ignore it. Indicates a spurious interrupt or it's out
-		// of sync
-		TIMER_CHB_INT_DISABLE();
-		sg_eCell_mc_rxState = ESTATE_IDLE;
+		// This is an edge during data reception - apply timing correction
+		// (we skip bit 0 since we just set up timing)
+		
+		// Get current timer value
+		uint8_t currentTimer = TCNT0;
+		
+		// Calculate expected timer value (should be at bit boundary)
+		// OCR0B is our next sample point, so bit boundary should be VUART_BIT_TICKS/2 before it
+		uint8_t expectedTimer = (uint8_t)(OCR0B - (VUART_BIT_TICKS/2));
+		
+		// Calculate timing error (positive = we're late, negative = we're early)
+		int8_t timingError = (int8_t)(currentTimer - expectedTimer);
+		
+		// Update statistics
+		if (timingError < sg_minTimingError) sg_minTimingError = timingError;
+		if (timingError > sg_maxTimingError) sg_maxTimingError = timingError;
+		
+		// Apply correction if error is significant
+		if (timingError > TIMING_TOLERANCE || timingError < -TIMING_TOLERANCE)
+		{
+			// Limit correction to prevent oscillation
+			int8_t correction = timingError;
+			if (correction > MAX_CORRECTION) correction = MAX_CORRECTION;
+			if (correction < -MAX_CORRECTION) correction = -MAX_CORRECTION;
+			
+			// Adjust next sample time (move it by half the error to gradually converge)
+			OCR0B = (uint8_t)(OCR0B - (correction/2));
+			
+			// Increment correction counter
+			sg_edgeCorrections++;
+		}
 	}
+	// else spurious interrupt, ignore
 		
 }
 
@@ -327,8 +367,10 @@ ISR(TIMER0_COMPB_vect, ISR_BLOCK)
 		// This is the more data vs. data stop bit, 9th and last one.  we can ignore the guard bit that follows
 		sg_bCell_mc_rxMoreData = bData;
 
-		// Enable cell_mc_rx for next byte
-		VUART_RX_ENABLE();
+		// Switch back to falling edge detection for next start bit
+		VUART_RX_FALLING_EDGE();
+		// Note: interrupt is already enabled, just changing edge type
+		
 		// stop the timed bit interrupts
 		TIMER_CHB_INT_DISABLE();
 		
@@ -458,7 +500,11 @@ void vUARTInit(void)
 
 void vUARTInitReceive(void)
 {
-
+	// Reset timing correction statistics
+	sg_minTimingError = 127;     // Max positive value for int8_t
+	sg_maxTimingError = -128;    // Max negative value for int8_t
+	sg_edgeCorrections = 0;
+	
 	// Enable receives
 	VUART_RX_ENABLE();
 }
