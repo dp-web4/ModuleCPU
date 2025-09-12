@@ -1242,7 +1242,7 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 					if( (false == sg_bSendCellStatus) && (pu8Data[1] < sg_sFrame.sg_u8CellCountExpected) )
 					{
 						sg_u8CellStatus = pu8Data[1];
-						sg_u8CellStatusTarget = sg_u8CellStatus;
+						sg_u8CellStatusTarget = sg_u8CellStatus + 1;  // Send one cell (target is exclusive)
 						
 						if (CELL_DETAIL_ALL == pu8Data[1])
 						{
@@ -2172,8 +2172,7 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 		sg_bSDCardReady = STORE_WriteFrame(&sg_sFrame);  
 	}
 
-	// Send out a status
-	SendModuleControllerStatus();
+	// Don't send unsolicited status - Pack Controller will request when needed
 
 
 }

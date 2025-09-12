@@ -55,10 +55,10 @@
 #define VUART_BIT_TICK_OFFSET 7  // subtract per bit except first, 7 has worked best so far
 
 // Uncomment to enable profiler code FOR TESTING ONLY, DO NOT LEAVE ON IN PRODUCTION
-// NOTE: Moved from PC7 to PD7 (PC7 drives flipflop clock on REV E+)
-#define PROFILER_INIT()						DDRD |= (1 << PORTD7); PORTD |= (1 << PORTD7)
-#define PROF_1_ASSERT()						PORTD |= (1 << PORTD7)
-#define PROF_1_DEASSERT()					PORTD &= (uint8_t) ~(1 << PORTD7)
+// NOTE: Moved from PC7 to PD5 (PC7 drives flipflop clock on REV E+)
+#define PROFILER_INIT()						DDRD |= (1 << PORTD5); PORTD |= (1 << PORTD5)
+#define PROF_1_ASSERT()						PORTD |= (1 << PORTD5)
+#define PROF_1_DEASSERT()					PORTD &= (uint8_t) ~(1 << PORTD5)
 // uncomment to disable profiler code
 //#define PROFILER_INIT()
 //#define PROF_1_ASSERT()
@@ -300,7 +300,8 @@ ISR(INT1_vect, ISR_BLOCK)
 		if (timingError > sg_maxTimingError) sg_maxTimingError = timingError;
 		
 		// ALWAYS resync: edge just occurred, so set timer to fire at mid-bit
-		OCR0B = (uint8_t)(TCNT0 + (VUART_BIT_TICKS/2));
+		// Subtract tick offset to account for timer interrupt latency
+		OCR0B = (uint8_t)(TCNT0 + (VUART_BIT_TICKS/2) - VUART_BIT_TICK_OFFSET);
 		
 		// Increment correction counter
 		sg_edgeCorrections++;
