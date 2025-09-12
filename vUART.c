@@ -55,11 +55,10 @@
 #define VUART_BIT_TICK_OFFSET 7  // subtract per bit except first, 7 has worked best so far
 
 // Uncomment to enable profiler code FOR TESTING ONLY, DO NOT LEAVE ON IN PRODUCTION
-// NOTE: on REV E and up PC7 also drives the flipflop clock, it is normally high.  generally this will have no effect in normal operation
-// only exception is if there is a latched overcurrent/overtemp condition in which case it may re-enable FET.
-#define PROFILER_INIT()						DDRC |= (1 << PORTC7)
-#define PROF_1_ASSERT()						PORTC |= (1 << PORTC7)
-#define PROF_1_DEASSERT()					PORTC &= (uint8_t) ~(1 << PORTC7)
+// NOTE: Moved from PC7 to PD7 (PC7 drives flipflop clock on REV E+)
+#define PROFILER_INIT()						DDRD |= (1 << PORTD7); PORTD |= (1 << PORTD7)
+#define PROF_1_ASSERT()						PORTD |= (1 << PORTD7)
+#define PROF_1_DEASSERT()					PORTD &= (uint8_t) ~(1 << PORTD7)
 // uncomment to disable profiler code
 //#define PROFILER_INIT()
 //#define PROF_1_ASSERT()
@@ -288,37 +287,23 @@ ISR(INT1_vect, ISR_BLOCK)
 	}
 	else if (sg_eCell_mc_rxState == ESTATE_RX_DATA && sg_u8Cell_mc_rxBitCount > 0)
 	{
-		// This is an edge during data reception - apply timing correction
+		// This is an edge during data reception - always resync to it
 		// (we skip bit 0 since we just set up timing)
 		
-		// Get current timer value
+		// Calculate timing error for statistics only
 		uint8_t currentTimer = TCNT0;
-		
-		// Calculate expected timer value (should be at bit boundary)
-		// OCR0B is our next sample point, so bit boundary should be VUART_BIT_TICKS/2 before it
 		uint8_t expectedTimer = (uint8_t)(OCR0B - (VUART_BIT_TICKS/2));
-		
-		// Calculate timing error (positive = we're late, negative = we're early)
 		int8_t timingError = (int8_t)(currentTimer - expectedTimer);
 		
 		// Update statistics
 		if (timingError < sg_minTimingError) sg_minTimingError = timingError;
 		if (timingError > sg_maxTimingError) sg_maxTimingError = timingError;
 		
-		// Apply correction if error is significant
-		if (timingError > TIMING_TOLERANCE || timingError < -TIMING_TOLERANCE)
-		{
-			// Limit correction to prevent oscillation
-			int8_t correction = timingError;
-			if (correction > MAX_CORRECTION) correction = MAX_CORRECTION;
-			if (correction < -MAX_CORRECTION) correction = -MAX_CORRECTION;
-			
-			// Adjust next sample time (move it by half the error to gradually converge)
-			OCR0B = (uint8_t)(OCR0B - (correction/2));
-			
-			// Increment correction counter
-			sg_edgeCorrections++;
-		}
+		// ALWAYS resync: edge just occurred, so set timer to fire at mid-bit
+		OCR0B = (uint8_t)(TCNT0 + (VUART_BIT_TICKS/2));
+		
+		// Increment correction counter
+		sg_edgeCorrections++;
 	}
 	// else spurious interrupt, ignore
 		
