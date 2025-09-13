@@ -1,10 +1,10 @@
 # Session Status - ModuleCPU VUART & Cell Detail Issues
 
-## Date: 2025-01-12
+## Date: 2025-09-12 (Updated from 2025-01-12)
 
 ## Primary Issues Addressed
 
-### 1. VUART Edge-Triggered Timing Correction (ModuleCPU)
+### 1. VUART Edge-Triggered Timing Correction (ModuleCPU) - RESOLVED
 **Problem**: VUART receive reliability issues due to clock drift
 **Solution Implemented**: 
 - Added edge-triggered timing correction during byte reception
@@ -17,8 +17,10 @@
 - Switches to any-edge detection after start bit
 - Resyncs timer on every edge: `OCR0B = TCNT0 + (VUART_BIT_TICKS/2) - VUART_BIT_TICK_OFFSET`
 - Returns to falling-edge detection after byte complete
+- **CRITICAL FIX**: Subtracted timer tick offset to properly align with mid-bit position
 
-**Status**: Edge correction implemented but made VUART less reliable - needs investigation
+**Status**: ✅ RESOLVED - Edge correction working effectively after timer offset fix
+**Note**: VUART handles cell-to-module communication, NOT module-to-pack (which uses CAN)
 
 ### 2. Cell Detail Request/Response Issues (Pack Controller ↔ ModuleCPU)
 
@@ -41,20 +43,25 @@
 3. **Bug**: DLC was 2 bytes for follow-up requests, should be 3
    - Fixed: Changed to `CAN_DLC_3` for all cell detail requests
 
-**Current Status**: Still seeing erratic cell sequence despite fixes
+**Current Status**: Still seeing erratic cell sequence despite fixes - ACTIVE ISSUE
 
 ## Remaining Issues
 
-### Cell Sequence Still Erratic
+### Cell Sequence Still Erratic (CAN Communication Issue)
 Despite all fixes, seeing patterns like:
 - 11, 12, 1, 2, 4, 6, 7, 9, 10, 12 (skipping cells)
 - 1, 2, 4, 5, 7, 9, 10, 12 (different skips)
 - 0, 2, 4, 5, 6, 8, 10, 11 (yet another pattern)
 
-**Theory**: Issue appears to be on Pack Controller side since:
-- Module only sends when requested (verified)
-- No duplicate response debug messages
-- Request-wait-receive handshake should prevent overlap
+**Important Clarification**:
+- This is a CAN bus issue between Module and Pack Controller
+- VUART (cell-to-module) is working correctly and doesn't affect delivery
+- VUART only affects accuracy of cell data values, not the sequencing
+
+**Investigation Focus**:
+- Pack Controller Emulator sequencing logic appears correct
+- ModuleCPU may be missing/misprocessing CAN requests
+- Timing issues in CAN message processing
 
 ## Code State
 

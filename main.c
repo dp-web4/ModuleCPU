@@ -1192,6 +1192,7 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 				
 				// Indicate our module controller is registered
 				sg_bModuleRegistered = true;
+				sg_bIgnoreStatusRequests = false;  
 				
 				DebugOut("RX Registration - Module ID=%02x registered successfully\r\n", u8RegID);
 				
