@@ -2341,6 +2341,30 @@ int main(void)
 		// Set the CAN bus receive callback and init it
 		CANSetRXCallback(CANReceiveCallback);
 		CANInit();
+		// init the _noinit_ section variables
+		sg_u8ModuleRegistrationID = 0;
+		sg_bModuleRegistered = false;
+		sg_bIgnoreStatusRequests = false;  // Reset all status flags
+		ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
+		
+		// Initialize critical status and safety flags
+		sg_bSendAnnouncement = true;  // Should announce on startup
+		sg_bPackControllerTimeout = false;
+		sg_bSendModuleControllerStatus = false;
+		sg_bSendCellStatus = false;
+		sg_bSendHardwareDetail = false;
+		sg_bSendCellCommStatus = false;
+		sg_bCellBalanceReady = false;
+		sg_bCellBalancedOnce = false;
+		sg_bStopDischarge = false;
+		sg_bOvercurrentSignal = false;
+		sg_u8CellStatusTarget = 0;
+		sg_u8CellStatus = 0;
+		sg_u8SOC = 0;
+		sg_u8SOH = 0;
+		sg_u8SequentailCountMismatchThreshold = 0;
+		sg_u8SequentailCellCountMismatches = 0;
+
 	
 	
 //		DebugOut("ModBatt: Module Controller\n");

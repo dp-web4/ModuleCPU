@@ -51,7 +51,7 @@
 // measured to ensure the per-bit time matches VUART_BIT_TICKS
 // microseconds and accounts for CPU/interrupt/preamble overhead.
 
-#define VUART_BIT_START_OFSET 9  // add to first bit, 7 has worked so far
+// #define VUART_BIT_START_OFSET 9  // add to first bit, 7 has worked so far - no longer used!
 #define VUART_BIT_TICK_OFFSET 7  // subtract per bit except first, 7 has worked best so far
 
 // Uncomment to enable profiler code FOR TESTING ONLY, DO NOT LEAVE ON IN PRODUCTION
@@ -249,15 +249,11 @@ ISR(INT1_vect, ISR_BLOCK)
 	// Check if this is a start bit or an edge during reception
 	if (sg_eCell_mc_rxState == ESTATE_IDLE || sg_eCell_mc_rxState == ESTATE_NEXT_BYTE)
 	{
-		// This is a start bit - initialize reception
-		
-		// Program up the timer to interrupt about 1 bit's worth, which
+		// This is a start bit - initialize reception - the falling edge is the beginning of start bit		
+		// Program up the timer to interrupt about 1.5 bit's worth, which
 		// puts it almost in the center of the next bit. The added value 
-		// is empirically measured to ensure the sample of the first
-		// bit is in the middle of the bit time.
-		
-		// microseconds and accounts for CPU/interrupt/preamble overhead.
-		TIMER_CHB_INT( VUART_BIT_TICKS + (VUART_BIT_START_OFSET));  
+
+		TIMER_CHB_INT( VUART_BIT_TICKS + (VUART_BIT_TICKS/2) - VUART_BIT_TICK_OFFSET);  // start bit + half of first bit - ISR response (empirical)
 		
 		// Switch to any-edge detection for timing correction
 		VUART_RX_ANY_EDGE();
