@@ -350,6 +350,40 @@ static void CANSendMessageInternal( ECANMessageType eType,
 	}
 }
 
+/*
+ * CAN MOB Interrupt Handler Flow Documentation
+ * =============================================
+ * 
+ * NORMAL TX FLOW:
+ * 1. CANSendMessage() called by application
+ * 2. CANSendMessageInternal() prepares message
+ * 3. CANMOBSet() configures TX MOB and enables CANIE2 interrupt (line 266)
+ * 4. TX completes, interrupt fires, this handler called
+ * 5. TX MOB handler disables MOB (line 359-360) but does NOT re-enable
+ * 6. Next TX: CANMOBSet() called again, re-enables CANIE2
+ * 
+ * TX ERROR/RETRY FLOW:
+ * 1. TX error occurs (collision, ACK error, etc.)
+ * 2. This handler detects error in TX MOB section
+ * 3. If retries available, calls CANSendMessageInternal() directly
+ * 4. CANSendMessageInternal() calls CANMOBSet() which re-enables MOB
+ * 5. If retries exhausted, clears sg_bBusy but MOB stays disabled
+ * 
+ * NORMAL RX FLOW:
+ * 1. At init, CANMOBSet() configures RX MOB with receive filter
+ * 2. CANIE2 enabled for RX MOB (line 266 in CANMOBSet)
+ * 3. Message arrives matching filter, interrupt fires
+ * 4. RX MOB handler disables MOB temporarily (line 359-360)
+ * 5. Handler extracts message data, calls callback
+ * 6. Handler re-enables RX MOB at end (line 430-431)
+ * 7. Ready to receive next message
+ * 
+ * IMPORTANT NOTES:
+ * - TX MOB is one-shot, gets re-enabled only when next TX is set up
+ * - RX MOB is continuous, gets re-enabled immediately after processing
+ * - System works because CANMOBSet() always re-enables on next TX
+ * - Potential issue: TX MOB stays disabled after last transmission
+ */
 void CANMOBInterrupt( uint8_t u8MOBIndex )
 {
 	// Set the MOB page first (and zero the data index)
@@ -441,11 +475,11 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 		}
 		
 		// RX success, just clear it since this is the TX context
-		if( CANSTMOB & (1 << RXOK) )
-		{
+//		if( CANSTMOB & (1 << RXOK) )
+//		{
 			// Clear it
-			CANSTMOB &= ~(1 << RXOK);
-		}
+//			CANSTMOB &= ~(1 << RXOK);
+//		}
 
 		// If TX Error on transmit (collision with another device)
 		// -or- ACK error (nobody listening),
