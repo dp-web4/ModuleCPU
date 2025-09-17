@@ -366,8 +366,13 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 		{
 			// Clear it
 			CANSTMOB &= ~(1 << TXOK);
-            sg_bBusy = false;
-            sg_bInRetransmit = false;  // Clear flag on success	
+			// CRITICAL BUG FIX: Do NOT clear sg_bBusy or sg_bInRetransmit here!
+			// This is the RX MOB context, not TX. Clearing these flags here causes race conditions
+			// where new TX can start while previous TX is still in progress, leading to
+			// CAN peripheral confusion and module lockups. TX completion is properly handled
+			// in the TX MOB context (CANMOB_TX_IDX) at line 428.
+			// sg_bBusy = false;  // WRONG - commented out to fix CAN reliability issues
+			// sg_bInRetransmit = false;  // WRONG - also should not be cleared here
 		}
 		// RX success?
 		if( CANSTMOB & (1 << RXOK) )

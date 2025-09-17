@@ -2008,8 +2008,6 @@ if(0)
 	// If we want the hardware detail, send it.
 	if (sg_bSendHardwareDetail)
 	{
-		bool bSuccess;
-	
 		// Get current thresholds
 		CurrentThresholdsGet((uint16_t *) (pu8Response + sizeof(uint16_t)),
 							 (uint16_t *) (pu8Response));
@@ -2022,13 +2020,11 @@ if(0)
 		pu8Response[6] = (uint8_t) HARDWARE_COMPATIBILITY;
 		pu8Response[7] = (uint8_t) (HARDWARE_COMPATIBILITY >> 8);
 				
-		bSuccess = CANSendMessage( ECANMessageType_ModuleHardwareDetail, pu8Response, CAN_STATUS_RESPONSE_SIZE );
+		CANSendMessage( ECANMessageType_ModuleHardwareDetail, pu8Response, CAN_STATUS_RESPONSE_SIZE );
 
-		// If we've successfully sent the hardware detail, don't send it again				
-		if (bSuccess)
-		{
-			sg_bSendHardwareDetail = false;
-		}
+		// Clear the flag regardless of success - hardware detail is not critical
+		// If it fails due to busy CAN, we don't want to keep retrying forever
+		sg_bSendHardwareDetail = false;
 	}
 }
 
@@ -2240,11 +2236,6 @@ int main(void)
 	
 	// Turn off the cell chain
 	CELL_POWER_DEASSERT();
-	
-	uint8_t* memptr;
-	for (memptr=(uint8_t*)0x0800; memptr < (uint8_t*)0x1000; memptr++) *memptr = 0xaa;  // data ends at 0x679, fill a chunk with 0xaa to see if stack is clobbering it
-	
-	//OSCCAL = 0x62;  // *dp try different cal value, default is 0x60
 		
 	sg_u8Reason = MCUSR;
 	if ((1 << WDRF) & sg_u8Reason)

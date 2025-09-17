@@ -1,4 +1,118 @@
-# VUART Edge-Triggered Timing Correction Proposal
+# Proposed CAN Fixes for ModuleCPU
+
+## Problems Identified
+
+### 1. Hardware Detail Flag Never Clears
+**Issue**: `sg_bSendHardwareDetail` flag is set but never clears, causing continuous retries.
+
+**Root Cause**: 
+- In `main.c:2009-2032`, the flag only clears if `CANSendMessage()` returns true
+- `CANSendMessage()` returns false if `sg_bBusy` is true
+- If CAN bus is busy, the hardware detail keeps trying to send forever
+
+### 2. Incorrect sg_bBusy Clearing in RX MOB Context
+**Issue**: In `can.c:369`, sg_bBusy is incorrectly cleared in the RX MOB interrupt handler when TXOK is set.
+
+**Location**: `can.c:365-369`
+```c
+// TX success?  Just clear it since this is the RX context
+if( CANSTMOB & (1 << TXOK) )
+{
+    // Clear it
+    CANSTMOB &= ~(1 << TXOK);
+    sg_bBusy = false;  // <-- WRONG! This is RX context, not TX
+}
+```
+
+This can cause race conditions where sg_bBusy is cleared prematurely while a transmission is still in progress.
+
+### 3. Module Goes Quiet / Stuck in CAN ISR
+**Symptoms**: 
+- Module stops responding to CAN messages
+- When paused, execution is in CAN interrupt code
+- Hardware detail flag never clears
+
+**Likely Cause**: The incorrect sg_bBusy handling creates a deadlock scenario where:
+1. TX starts, sg_bBusy = true
+2. RX MOB incorrectly clears sg_bBusy
+3. New TX starts while previous TX still active
+4. CAN peripheral gets confused with overlapping operations
+5. System gets stuck in ISR trying to handle error conditions
+
+## Proposed Solutions
+
+### Fix 1: Remove Incorrect sg_bBusy Clear in RX Context
+```c
+// can.c:365-369
+// TX success?  Just clear it since this is the RX context
+if( CANSTMOB & (1 << TXOK) )
+{
+    // Clear it
+    CANSTMOB &= ~(1 << TXOK);
+    // sg_bBusy = false;  // REMOVE THIS LINE - TX completion handled in TX MOB
+}
+```
+
+### Fix 2: Add Retry Counter for Hardware Detail
+```c
+// In main.c, add counter near sg_bSendHardwareDetail declaration:
+static uint8_t sg_u8HardwareDetailRetries = 0;
+
+// Modify main.c:2009-2032
+if (sg_bSendHardwareDetail)
+{
+    bool bSuccess;
+    
+    // ... existing code to build response ...
+    
+    bSuccess = CANSendMessage( ECANMessageType_ModuleHardwareDetail, pu8Response, CAN_STATUS_RESPONSE_SIZE );
+    
+    if (bSuccess)
+    {
+        sg_bSendHardwareDetail = false;
+        sg_u8HardwareDetailRetries = 0;  // Reset counter on success
+    }
+    else
+    {
+        // Increment retry counter
+        sg_u8HardwareDetailRetries++;
+        if (sg_u8HardwareDetailRetries > 100)  // Give up after 100 attempts
+        {
+            sg_bSendHardwareDetail = false;
+            sg_u8HardwareDetailRetries = 0;
+        }
+    }
+}
+```
+
+### Fix 3: Add Watchdog Reset for CAN Peripheral Recovery
+As a safety measure, if the CAN peripheral gets stuck, the watchdog should reset the system. This is already in place but we should verify it's enabled properly.
+
+## Testing Plan
+
+1. **Verify Hardware Detail Sends Once**: Monitor CAN bus to confirm hardware detail message is sent exactly once when requested
+2. **Stress Test**: Send rapid status requests to verify no lockups
+3. **Monitor sg_bBusy**: Add debug output to track sg_bBusy state transitions
+4. **Long Duration Test**: Run for extended period to verify no gradual degradation
+
+## Risk Assessment
+
+- **Low Risk**: Removing the incorrect sg_bBusy clear in RX context - this line is clearly wrong
+- **Medium Risk**: Adding retry limit - need to ensure 100 retries is sufficient for worst-case bus congestion
+- **Overall Impact**: These fixes should eliminate the module going quiet and stuck in CAN ISR issues
+
+## Next Steps
+
+1. Review and discuss these proposed changes
+2. Implement fixes after approval
+3. Test on hardware
+4. Monitor for improvements in reliability
+
+---
+
+# Previous Content: VUART Edge-Triggered Timing Correction
+
+[Previous VUART and Pack Controller content preserved below...]
 
 ## Current Implementation Analysis
 
