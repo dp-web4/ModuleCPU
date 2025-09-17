@@ -80,6 +80,21 @@ These fixes prevent the module from briefly turning on relays at startup - a cri
 - Fixed various CAN message definitions and debug system
 - Module announcement and registration working properly
 
+## Recent CAN Reliability Fixes (September 17, 2025)
+
+### Critical CAN Interrupt Issues Fixed
+1. **Hardware Detail Flag**: Now clears unconditionally after send attempt (was getting stuck if CAN busy)
+2. **sg_bBusy Race Condition**: Removed incorrect clearing in RX MOB context (lines 369-375 commented out)
+3. **TX Status in RX Context**: Removed entire TX status handling from RX MOB (was in wrong context)
+4. **CAN MOB Flow Documentation**: Added comprehensive documentation explaining TX/RX MOB re-enabling mechanism
+   - TX MOB is one-shot, not re-enabled in interrupt (gets re-enabled by CANMOBSet on next TX)
+   - RX MOB is continuous, re-enabled in interrupt handler
+
+### Key Discoveries
+- TX MOB doesn't need re-enabling in interrupt because it's re-enabled by CANMOBSet when next message sent
+- This "worked" despite looking wrong - now properly documented
+- Module was getting stuck when hardware detail flag never cleared
+
 ## Recent Bug Fixes (July 30, 2025)
 
 ### Fixed Status Request Race Condition
