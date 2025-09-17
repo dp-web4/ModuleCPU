@@ -361,6 +361,12 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 	
 	if( CANMOB_RX_IDX == u8MOBIndex )
 	{
+		// CRITICAL FIX: RX MOB should NOT handle TX status bits at all!
+		// This entire TX handling block in RX context is wrong and has been removed.
+		// If TXOK appears in RX MOB, it's likely a hardware quirk or misconfiguration,
+		// but handling it here can interfere with actual TX operations.
+		// TX status should ONLY be handled in TX MOB context (CANMOB_TX_IDX).
+		/*
 		// TX success?  Just clear it since this is the RX context
 		if( CANSTMOB & (1 << TXOK) )
 		{
@@ -374,6 +380,7 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 			// sg_bBusy = false;  // WRONG - commented out to fix CAN reliability issues
 			// sg_bInRetransmit = false;  // WRONG - also should not be cleared here
 		}
+		*/
 		// RX success?
 		if( CANSTMOB & (1 << RXOK) )
 		{
