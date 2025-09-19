@@ -80,6 +80,23 @@ These fixes prevent the module from briefly turning on relays at startup - a cri
 - Fixed various CAN message definitions and debug system
 - Module announcement and registration working properly
 
+## Recent VUART Rising Edge Fix (September 18, 2025)
+
+### Critical Signal Inversion Discovery
+**Problem**: ModuleCPU was using falling edge detection for VUART start bits, but level shifters between cells (needed because cells are stacked at different voltages) INVERT the signal.
+
+**Solution**: Changed ModuleCPU to use RISING edge detection:
+- Added `VUART_RX_RISING_EDGE()` macro in vUART.h
+- Changed `VUART_RX_ENABLE()` to use rising edge (ISC11=1, ISC10=1)
+- Updated stop bit handling to return to rising edge detection
+
+**Signal Flow**:
+1. CellCPU transmits: HIGH (idle) → LOW (start bit)
+2. Level shifter inverts: LOW (idle) → HIGH (start bit)
+3. ModuleCPU now correctly detects: Rising edge
+
+This fixed temperature data corruption and VUART communication reliability issues!
+
 ## Recent CAN Reliability Fixes (September 17, 2025)
 
 ### Critical CAN Interrupt Issues Fixed

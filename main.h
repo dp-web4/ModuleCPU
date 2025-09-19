@@ -41,8 +41,7 @@ typedef enum
 #define PACK_CONTROLLER_TIMEOUT_MS		11100
 #define PACK_CONTROLLER_TIMEOUT_TICKS	PERIODIC_INTERRUPT_MS_TO_TICKS(PACK_CONTROLLER_TIMEOUT_MS)
 
-// Virtual UART timing - How many timer ticks is a single data/start/stop bit? This is the baud rate in ticks.
-#define VUART_BIT_TICKS					50
+
 
 // 0 - all off
 // 1 - mech on, fet off

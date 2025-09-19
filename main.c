@@ -8,7 +8,7 @@
  */
 
 // Define to use fake cell data for testing MODULE_DETAIL responses
-// #define FAKE_CELL_DATA
+//#define FAKE_CELL_DATA
 
 #include <stdint.h>
 #include <xc.h>
@@ -57,7 +57,9 @@ static volatile eWDTstatus __attribute__((section(".noinit"))) sg_eWDTCurrentSta
 #define	STATE_CYCLE_INTERVAL		1			// How often do we switch state? (in seconds)
 
 // Request ALL cell detail
-#define CELL_DETAIL_ALL						0xff// Uncomment to cause cell CPUs to return fixed patterns (communication test)
+#define CELL_DETAIL_ALL						0xff
+
+// Uncomment to cause cell CPUs to return fixed patterns (communication test)
 // #define REQUEST_DEBUG_CELL_RESPONSE		5
 
 // Uncomment to enable cell balance requests
@@ -1483,8 +1485,10 @@ static bool CellDataConvertTemperature( int16_t s16CellData,
 		
 		// Turn s16Temperature into whole degrees C
 		s16Temperature >>= 4;
-		
+
 		// check for valid range
+		// TEMPORARILY DISABLED FOR DEBUGGING
+		/*
 		if ((s16Temperature < MIN_VALID_CELL_TEMP) || (s16Temperature > MAX_VALID_CELL_TEMP))
 		{
 			s16Temperature = TEMPERATURE_INVALID;
@@ -1494,8 +1498,13 @@ static bool CellDataConvertTemperature( int16_t s16CellData,
 		{
 			// Scale to 100ths of degrees C
 			s16Temperature = (s16Temperature * 100) + (int16_t) sg_u8FractionalLookup[u8Fractional];
-			s16Temperature += TEMPERATURE_BASE;			
+			s16Temperature += TEMPERATURE_BASE;
 		}
+		*/
+		// TEMPORARY - Always do conversion regardless of range
+		// Scale to 100ths of degrees C
+		s16Temperature = (s16Temperature * 100) + (int16_t) sg_u8FractionalLookup[u8Fractional];
+		s16Temperature += TEMPERATURE_BASE;
 	}
 	else
 	{
@@ -2574,8 +2583,10 @@ int main(void)
 							++pu8Src;
 						}
 
-						sg_sFrame.sg_u16BytesReceived = sizeof(sg_u16FakeCellData);
-						sg_sFrame.sg_u8CellCPUCount = sizeof(sg_u16FakeCellData) >> 2;	// Each cell report is 4 bytes
+		//				sg_sFrame.sg_u16BytesReceived = sizeof(sg_u16FakeCellData);
+						sg_sFrame.sg_u16BytesReceived = sg_sFrame.sg_u8CellCountExpected << 2;
+		//				sg_sFrame.sg_u8CellCPUCount = sizeof(sg_u16FakeCellData) >> 2;	// Each cell report is 4 bytes
+						sg_sFrame.sg_u8CellCPUCount = sg_sFrame.sg_u8CellCountExpected;
 		#else  // make it
 						// Initialize receive capability
 						vUARTInitReceive();

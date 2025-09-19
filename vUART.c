@@ -259,16 +259,16 @@ ISR(INT1_vect, ISR_BLOCK)
 		VUART_RX_ANY_EDGE();
 		// Note: interrupt remains enabled for edge detection during reception
 	
-		if (sg_bState)
-		{
+//		if (sg_bState)
+//		{
 			PROF_1_ASSERT();
 			sg_bState = false;
-		}
-		else
-		{
-			PROF_1_DEASSERT();
-			sg_bState = true;
-		}
+//		}
+//		else
+//		{
+//			PROF_1_DEASSERT();
+//			sg_bState = true;
+//		}
 		
 		// Set the state machine to receive data
 		sg_eCell_mc_rxState = ESTATE_RX_DATA;
@@ -349,8 +349,12 @@ ISR(TIMER0_COMPB_vect, ISR_BLOCK)
 		// This is the more data vs. data stop bit, 9th and last one.  we can ignore the guard bit that follows
 		sg_bCell_mc_rxMoreData = bData;
 
-		// Switch back to falling edge detection for next start bit
-		VUART_RX_FALLING_EDGE();
+// return profiler to zero
+		PROF_1_DEASSERT();
+		sg_bState = true;
+
+		// Switch back to rising edge detection for next start bit (signal inverted by level shifters)
+		VUART_RX_RISING_EDGE();
 		// Note: interrupt is already enabled, just changing edge type
 		
 		// stop the timed bit interrupts
