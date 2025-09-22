@@ -118,6 +118,24 @@ This fixed temperature data corruption and VUART communication reliability issue
 
 This ensures CAN communication can recover even if interrupts fail, preventing permanent lockups.
 
+### Critical Bus-Off Recovery Fix
+**Problem**: CAN was permanently failing even when `sg_u8Busy = 0` due to bus-off state not being recovered.
+
+**Root Cause**: When CAN controller enters bus-off state (after too many errors), it automatically disables itself and requires manual re-enabling. The old code just cleared the interrupt flag but never re-enabled the controller.
+
+**Solution**:
+1. **Bus-Off Recovery**: Now properly re-enables CAN controller with `CANGCON = (1 << ENASTB)` when bus-off detected
+2. **Health Check Function**: Added `CANCheckHealth()` called every 100ms that:
+   - Checks if controller is disabled and re-enables it
+   - Verifies RX MOB is still enabled and re-enables if needed
+   - Monitors error passive state (TEC/REC > 127)
+   - Ensures CAN stays operational even after severe errors
+3. **Additional Diagnostics**:
+   - `sg_u16BusOffEvents` - Count of bus-off recoveries
+   - `sg_u16ErrorPassive` - Count of error passive detections
+
+**Key Finding**: The CAN controller can become disabled due to bus-off events, and without explicit re-enabling, all CAN communication stops permanently even though `sg_u8Busy` correctly shows 0.
+
 ## Recent CAN Reliability Fixes (September 17, 2025)
 
 ### Critical CAN Interrupt Issues Fixed

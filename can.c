@@ -43,6 +43,8 @@ static volatile bool sg_bInRetransmit = false;
 static uint16_t sg_u16TxTimeouts = 0;		// Count of TX timeouts
 static uint16_t sg_u16TxErrors = 0;		// Count of TX errors recovered
 static uint16_t sg_u16TxOkPolled = 0;		// Count of TXOK found by polling
+static uint16_t sg_u16BusOffEvents = 0;	// Count of bus-off events
+static uint16_t sg_u16ErrorPassive = 0;	// Count of error passive states
 
 typedef struct 
 {
@@ -546,11 +548,23 @@ ISR(CAN_INT_vect, ISR_BLOCK)
 	
 	// Now the generic, non-MOB interrupts (some of which may have already been handled by the MOB handler)
 	
-	// Bus Off interrupt
+	// Bus Off interrupt - CRITICAL: Must recover from bus-off state!
 	if( CANGIT & (1 << BOFFIT) )
 	{
-		// Just clear it for now
+		// Clear the interrupt flag
 		CANGIT = (1 << BOFFIT);
+
+		// Increment diagnostic counter
+		sg_u16BusOffEvents++;
+
+		// CRITICAL: Re-enable the CAN controller after bus-off
+		// The controller automatically enters "disabled" state on bus-off
+		// and must be manually re-enabled
+		CANGCON = (1 << ENASTB);
+
+		// Clear busy flag since any pending transmission is lost
+		sg_u8Busy = 0;
+		sg_bInRetransmit = false;
 	}
 	
 	// Frame buffer receive (burst receive interrupt)
@@ -730,5 +744,47 @@ uint16_t CANGetTxErrors(void)
 uint16_t CANGetTxOkPolled(void)
 {
 	return sg_u16TxOkPolled;
+}
+
+uint16_t CANGetBusOffEvents(void)
+{
+	return sg_u16BusOffEvents;
+}
+
+void CANCheckHealth(void)
+{
+	// Check if CAN controller is in error passive state
+	// TEC (Transmit Error Counter) or REC (Receive Error Counter) > 127
+	if ((CANTEC > 127) || (CANREC > 127))
+	{
+		sg_u16ErrorPassive++;
+	}
+
+	// Check if CAN is disabled (should always be enabled)
+	if (!(CANGSTA & (1 << ENFG)))
+	{
+		// CAN controller is disabled - re-enable it!
+		CANGCON = (1 << ENASTB);
+
+		// Re-initialize RX MOB since controller was disabled
+		CANMOBSet(CANMOB_RX_IDX, &sg_sMOBGenericReceive, NULL, 0);
+	}
+
+	// Check if RX MOB is still enabled
+	uint8_t savedMOB = CANPAGE;
+	CANPAGE = CANMOB_RX_IDX << MOBNB0;
+
+	// If RX MOB is disabled (CONMOB bits are 0), re-enable it
+	if ((CANCDMOB & 0xC0) == 0)
+	{
+		// RX MOB is disabled - this shouldn't happen!
+		// Re-enable it
+		CANPAGE = savedMOB;  // Restore first
+		CANMOBSet(CANMOB_RX_IDX, &sg_sMOBGenericReceive, NULL, 0);
+	}
+	else
+	{
+		CANPAGE = savedMOB;  // Restore MOB
+	}
 }
 

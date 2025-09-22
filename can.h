@@ -41,5 +41,7 @@ extern void CANCheckTxStatus( void );
 extern uint16_t CANGetTxTimeouts( void );
 extern uint16_t CANGetTxErrors( void );
 extern uint16_t CANGetTxOkPolled( void );
+extern uint16_t CANGetBusOffEvents( void );
+extern void CANCheckHealth( void );
 
 #endif	// _CAN_H_

@@ -2395,6 +2395,9 @@ int main(void)
 			// Check CAN TX status every tick (100ms) for recovery from stuck transmissions
 			CANCheckTxStatus();
 
+			// Check overall CAN health and recover from error states
+			CANCheckHealth();
+
 			// Clear separation of registered vs unregistered behavior
 			if (!sg_bModuleRegistered)
 			{
