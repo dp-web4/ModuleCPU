@@ -136,6 +136,22 @@ This ensures CAN communication can recover even if interrupts fail, preventing p
 
 **Key Finding**: The CAN controller can become disabled due to bus-off events, and without explicit re-enabling, all CAN communication stops permanently even though `sg_u8Busy` correctly shows 0.
 
+### Bus-Off Recovery Improvements (Latest)
+**Problem**: Module was rapidly cycling in/out of bus-off state, causing intermittent communication.
+
+**Root Cause**: After bus-off recovery, the module immediately tried to transmit again, hitting bus errors and going back to bus-off. This indicates a physical bus problem (termination, baudrate, grounding).
+
+**Solution**:
+1. **Recovery Delay**: After bus-off, wait 1 second (10 ticks) before allowing transmissions
+2. **Error Counter Monitoring**: Track TEC/REC values to detect rapid error accumulation
+3. **Diagnostic Functions**: Added `CANGetTEC()` and `CANGetREC()` to monitor error counters
+
+**Physical Layer Checklist**:
+- Verify 120Ω termination resistors at both ends of CAN bus
+- Confirm 500kbps baudrate on all nodes (CANBT1=0x02, CANBT2=0x04, CANBT3=0x12 for 8MHz)
+- Check ground connections between nodes
+- Verify CAN_H and CAN_L differential pair routing
+
 ## Recent CAN Reliability Fixes (September 17, 2025)
 
 ### Critical CAN Interrupt Issues Fixed

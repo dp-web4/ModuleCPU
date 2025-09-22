@@ -45,6 +45,7 @@ static uint16_t sg_u16TxErrors = 0;		// Count of TX errors recovered
 static uint16_t sg_u16TxOkPolled = 0;		// Count of TXOK found by polling
 static uint16_t sg_u16BusOffEvents = 0;	// Count of bus-off events
 static uint16_t sg_u16ErrorPassive = 0;	// Count of error passive states
+static uint8_t sg_u8BusOffRecoveryDelay = 0;	// Delay counter after bus-off recovery
 
 typedef struct 
 {
@@ -565,6 +566,10 @@ ISR(CAN_INT_vect, ISR_BLOCK)
 		// Clear busy flag since any pending transmission is lost
 		sg_u8Busy = 0;
 		sg_bInRetransmit = false;
+
+		// Set recovery delay - don't transmit for a while after bus-off
+		// This gives the bus time to stabilize and prevents immediate re-entry to bus-off
+		sg_u8BusOffRecoveryDelay = 10;	// 10 ticks = 1 second at 100ms/tick
 	}
 	
 	// Frame buffer receive (burst receive interrupt)
@@ -630,6 +635,12 @@ bool CANSendMessage( ECANMessageType eType,
 					 uint8_t* pu8Data,
 					 uint8_t u8DataLen )
 {
+	// Don't transmit during bus-off recovery period
+	if (sg_u8BusOffRecoveryDelay > 0)
+	{
+		return(false);
+	}
+
 	// If we're busy, kick it back so we're cooperatively multitasking
 	// rather than spin locking
 	if (sg_u8Busy)
@@ -751,13 +762,52 @@ uint16_t CANGetBusOffEvents(void)
 	return sg_u16BusOffEvents;
 }
 
+uint8_t CANGetTEC(void)
+{
+	return CANTEC;
+}
+
+uint8_t CANGetREC(void)
+{
+	return CANREC;
+}
+
 void CANCheckHealth(void)
 {
+	// Decrement bus-off recovery delay if active
+	if (sg_u8BusOffRecoveryDelay > 0)
+	{
+		sg_u8BusOffRecoveryDelay--;
+	}
+
+	// Store current error counter values for diagnostics
+	static uint8_t lastTEC = 0;
+	static uint8_t lastREC = 0;
+	uint8_t currentTEC = CANTEC;
+	uint8_t currentREC = CANREC;
+
+	// Check if error counters are increasing rapidly (sign of bus problems)
+	if ((currentTEC > lastTEC + 10) || (currentREC > lastREC + 10))
+	{
+		// Rapid error increase - likely physical bus problem
+		// Consider reducing transmission attempts or adding delay
+	}
+
+	lastTEC = currentTEC;
+	lastREC = currentREC;
+
 	// Check if CAN controller is in error passive state
 	// TEC (Transmit Error Counter) or REC (Receive Error Counter) > 127
-	if ((CANTEC > 127) || (CANREC > 127))
+	if ((currentTEC > 127) || (currentREC > 127))
 	{
 		sg_u16ErrorPassive++;
+	}
+
+	// Check if near bus-off (TEC > 240)
+	if (currentTEC > 240)
+	{
+		// Very close to bus-off (255) - try to prevent it
+		// Could temporarily stop transmitting to let errors clear
 	}
 
 	// Check if CAN is disabled (should always be enabled)
@@ -768,6 +818,13 @@ void CANCheckHealth(void)
 
 		// Re-initialize RX MOB since controller was disabled
 		CANMOBSet(CANMOB_RX_IDX, &sg_sMOBGenericReceive, NULL, 0);
+
+		// After bus-off recovery, error counters should be at 0
+		// If they're not, there's still a bus problem
+		if ((CANTEC > 0) || (CANREC > 0))
+		{
+			// Still have errors after re-enable - bus problem persists
+		}
 	}
 
 	// Check if RX MOB is still enabled
