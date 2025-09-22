@@ -37,4 +37,9 @@ extern bool CANSendMessage( ECANMessageType eType,
 extern void CANPoll( void );
 extern void CANCheckTxStatus( void );
 
+// Diagnostic functions
+extern uint16_t CANGetTxTimeouts( void );
+extern uint16_t CANGetTxErrors( void );
+extern uint16_t CANGetTxOkPolled( void );
+
 #endif	// _CAN_H_

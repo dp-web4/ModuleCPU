@@ -109,7 +109,12 @@ This fixed temperature data corruption and VUART communication reliability issue
    - Polls TXOK flag directly as backup to interrupt
    - Checks for TX error flags (BERR, SERR, CERR, FERR, AERR)
    - Decrements counter and force-clears after timeout
-4. Provides recovery mechanism if interrupts fail or hardware gets stuck
+   - Properly disables TX MOB interrupt on timeout to prevent spurious interrupts
+4. Fixed timeout extension issue on retransmits - timeout no longer resets on AERG retries
+5. Added diagnostic counters:
+   - `sg_u16TxTimeouts` - Count of TX timeouts
+   - `sg_u16TxErrors` - Count of TX errors recovered
+   - `sg_u16TxOkPolled` - Count of TXOK found by polling
 
 This ensures CAN communication can recover even if interrupts fail, preventing permanent lockups.
 

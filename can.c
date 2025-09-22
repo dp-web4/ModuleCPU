@@ -39,6 +39,11 @@ static uint8_t sg_u8LastTXData[CAN_MAX_MSG_SIZE];
 static uint8_t sg_u8LastTXDataLen;
 static volatile bool sg_bInRetransmit = false;
 
+// Diagnostic counters for CAN issues
+static uint16_t sg_u16TxTimeouts = 0;		// Count of TX timeouts
+static uint16_t sg_u16TxErrors = 0;		// Count of TX errors recovered
+static uint16_t sg_u16TxOkPolled = 0;		// Count of TXOK found by polling
+
 typedef struct 
 {
 	uint8_t u8Mode;
@@ -332,7 +337,12 @@ static void CANSendMessageInternal( ECANMessageType eType,
 	}
 	if( bRetransmit || (0 == sg_u8Busy) )
 	{
-		sg_u8Busy = CAN_TX_TIMEOUT_TICKS;
+		// Only reset timeout if not already busy, or if explicitly retransmitting
+		// Don't extend timeout on retransmits - use existing countdown
+		if (0 == sg_u8Busy)
+		{
+			sg_u8Busy = CAN_TX_TIMEOUT_TICKS;
+		}
 		
 		// Save this message info for retransmit later if needed
 		if( false == bRetransmit )
@@ -667,6 +677,7 @@ void CANCheckTxStatus(void)
 			// Clear the flag
 			CANSTMOB &= ~(1 << TXOK);
 			sg_u8Busy = 0;
+			sg_u16TxOkPolled++;	// Diagnostic: we caught TXOK by polling
 		}
 		// Check for transmission errors
 		else if (CANSTMOB & ((1 << BERR) | (1 << SERR) | (1 << CERR) | (1 << FERR) | (1 << AERR)))
@@ -674,9 +685,10 @@ void CANCheckTxStatus(void)
 			// Clear all error flags and reset busy flag
 			CANSTMOB = 0x00;
 			sg_u8Busy = 0;
+			sg_u16TxErrors++;	// Diagnostic: error recovered
 
-			// Note: We're not retrying here - that's handled in the interrupt handler
-			// This is just a recovery mechanism if things get stuck
+			// Clear in-retransmit flag since we're giving up
+			sg_bInRetransmit = false;
 		}
 		else
 		{
@@ -686,16 +698,37 @@ void CANCheckTxStatus(void)
 			// If timeout expired, force clear
 			if (sg_u8Busy == 0)
 			{
-				// Clear any pending status and reset the MOB
+				// Clear any pending status and disable the MOB
 				CANSTMOB = 0x00;
-				CANCDMOB = 0x00;
+				CANCDMOB = 0x00;	// Disable the MOB
 
-				// Could optionally count timeout events here for diagnostics
+				// Clear in-retransmit flag since we're giving up
+				sg_bInRetransmit = false;
+
+				// Disable the MOB interrupt to prevent spurious interrupts
+				CANIE2 &= ~(1 << CANMOB_TX_IDX);
+
+				sg_u16TxTimeouts++;	// Diagnostic: timeout occurred
 			}
 		}
 
 		// Restore MOB
 		CANPAGE = savedMOB;
 	}
+}
+
+uint16_t CANGetTxTimeouts(void)
+{
+	return sg_u16TxTimeouts;
+}
+
+uint16_t CANGetTxErrors(void)
+{
+	return sg_u16TxErrors;
+}
+
+uint16_t CANGetTxOkPolled(void)
+{
+	return sg_u16TxOkPolled;
 }
 
