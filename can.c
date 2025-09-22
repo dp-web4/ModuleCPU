@@ -46,6 +46,8 @@ static uint16_t sg_u16TxOkPolled = 0;		// Count of TXOK found by polling
 static uint16_t sg_u16BusOffEvents = 0;	// Count of bus-off events
 static uint16_t sg_u16ErrorPassive = 0;	// Count of error passive states
 static uint8_t sg_u8BusOffRecoveryDelay = 0;	// Delay counter after bus-off recovery
+static uint8_t sg_u8TxOnlyErrorCount = 0;	// Count of consecutive TX-only errors
+static uint8_t sg_u8TxBackoffDelay = 0;	// Adaptive backoff delay for TX errors
 
 typedef struct 
 {
@@ -641,6 +643,12 @@ bool CANSendMessage( ECANMessageType eType,
 		return(false);
 	}
 
+	// Don't transmit during TX backoff period (adaptive backoff for persistent errors)
+	if (sg_u8TxBackoffDelay > 0)
+	{
+		return(false);
+	}
+
 	// If we're busy, kick it back so we're cooperatively multitasking
 	// rather than spin locking
 	if (sg_u8Busy)
@@ -772,6 +780,16 @@ uint8_t CANGetREC(void)
 	return CANREC;
 }
 
+uint8_t CANGetTxOnlyErrorCount(void)
+{
+	return sg_u8TxOnlyErrorCount;
+}
+
+uint8_t CANGetTxBackoffDelay(void)
+{
+	return sg_u8TxBackoffDelay;
+}
+
 void CANCheckHealth(void)
 {
 	// Decrement bus-off recovery delay if active
@@ -780,17 +798,54 @@ void CANCheckHealth(void)
 		sg_u8BusOffRecoveryDelay--;
 	}
 
+	// Decrement TX backoff delay if active
+	if (sg_u8TxBackoffDelay > 0)
+	{
+		sg_u8TxBackoffDelay--;
+	}
+
 	// Store current error counter values for diagnostics
 	static uint8_t lastTEC = 0;
 	static uint8_t lastREC = 0;
 	uint8_t currentTEC = CANTEC;
 	uint8_t currentREC = CANREC;
 
+	// Detect TX-only errors (TEC increasing but REC stays at 0)
+	// This indicates the module can't transmit but isn't seeing bus activity
+	// Likely a hardware issue with TX circuitry or transceiver
+	if ((currentTEC > lastTEC) && (currentREC == 0) && (lastREC == 0))
+	{
+		sg_u8TxOnlyErrorCount++;
+
+		// If we have persistent TX-only errors, apply adaptive backoff
+		if (sg_u8TxOnlyErrorCount > 3)
+		{
+			// Exponential backoff: 2, 4, 8, 16 ticks (200ms to 1.6s)
+			if (sg_u8TxBackoffDelay == 0)
+			{
+				sg_u8TxBackoffDelay = 2 << ((sg_u8TxOnlyErrorCount - 3) > 3 ? 3 : (sg_u8TxOnlyErrorCount - 3));
+				if (sg_u8TxBackoffDelay > 16)
+				{
+					sg_u8TxBackoffDelay = 16;	// Cap at 1.6 seconds
+				}
+			}
+		}
+	}
+	else if (currentREC > 0)
+	{
+		// We're seeing bus activity - reset TX-only error counter
+		sg_u8TxOnlyErrorCount = 0;
+	}
+
 	// Check if error counters are increasing rapidly (sign of bus problems)
 	if ((currentTEC > lastTEC + 10) || (currentREC > lastREC + 10))
 	{
 		// Rapid error increase - likely physical bus problem
-		// Consider reducing transmission attempts or adding delay
+		// Apply temporary backoff
+		if (sg_u8TxBackoffDelay < 5)
+		{
+			sg_u8TxBackoffDelay = 5;	// 500ms backoff for rapid errors
+		}
 	}
 
 	lastTEC = currentTEC;

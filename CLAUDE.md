@@ -152,6 +152,26 @@ This ensures CAN communication can recover even if interrupts fail, preventing p
 - Check ground connections between nodes
 - Verify CAN_H and CAN_L differential pair routing
 
+### TX-Only Error Detection (September 21, 2025)
+**Problem**: One module showing CANTEC=0x1C (28 decimal), CANREC=0, indicating transmit-only errors without receiving bus activity. This points to a hardware issue with the CAN transceiver.
+
+**Solution - Adaptive Error Handling**:
+1. **TX-Only Error Detection**: Added detection for when CANTEC increases but CANREC stays at 0
+   - `sg_u8TxOnlyErrorCount` tracks consecutive TX-only error occurrences
+   - Resets when any RX activity detected (CANREC > 0)
+2. **Adaptive Backoff**: Implemented exponential backoff for persistent TX errors
+   - After 3 consecutive TX-only errors, applies backoff delays
+   - Exponential increase: 200ms, 400ms, 800ms, 1.6s (capped)
+   - Also applies 500ms backoff for rapid error increases (>10 errors/tick)
+3. **New Diagnostic Functions**:
+   - `CANGetTxOnlyErrorCount()` - Returns count of TX-only errors
+   - `CANGetTxBackoffDelay()` - Returns current backoff delay in ticks
+
+**Hardware Issue Indicators**:
+- CANTEC increasing with CANREC=0 suggests TX driver/transceiver failure
+- Module-specific issue (other modules work fine) confirms hardware problem
+- Software workaround mitigates but doesn't fully solve hardware failures
+
 ## Recent CAN Reliability Fixes (September 17, 2025)
 
 ### Critical CAN Interrupt Issues Fixed

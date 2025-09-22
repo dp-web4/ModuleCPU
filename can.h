@@ -44,6 +44,8 @@ extern uint16_t CANGetTxOkPolled( void );
 extern uint16_t CANGetBusOffEvents( void );
 extern uint8_t CANGetTEC( void );
 extern uint8_t CANGetREC( void );
+extern uint8_t CANGetTxOnlyErrorCount( void );
+extern uint8_t CANGetTxBackoffDelay( void );
 extern void CANCheckHealth( void );
 
 #endif	// _CAN_H_
