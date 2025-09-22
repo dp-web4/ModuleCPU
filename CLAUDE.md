@@ -97,6 +97,22 @@ These fixes prevent the module from briefly turning on relays at startup - a cri
 
 This fixed temperature data corruption and VUART communication reliability issues!
 
+## Recent CAN TX Timeout Fix (September 21, 2025)
+
+### Added CAN TX Timeout Mechanism
+**Problem**: `sg_bBusy` could get stuck if TX interrupt didn't fire or TXOK wasn't set, blocking all CAN transmissions permanently.
+
+**Solution**:
+1. Changed `sg_bBusy` from boolean to `sg_u8Busy` timeout counter
+2. Set to `CAN_TX_TIMEOUT_TICKS` (2 = 200ms) when transmission starts
+3. Added `CANCheckTxStatus()` function called every 100ms tick that:
+   - Polls TXOK flag directly as backup to interrupt
+   - Checks for TX error flags (BERR, SERR, CERR, FERR, AERR)
+   - Decrements counter and force-clears after timeout
+4. Provides recovery mechanism if interrupts fail or hardware gets stuck
+
+This ensures CAN communication can recover even if interrupts fail, preventing permanent lockups.
+
 ## Recent CAN Reliability Fixes (September 17, 2025)
 
 ### Critical CAN Interrupt Issues Fixed

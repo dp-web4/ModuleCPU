@@ -23,7 +23,10 @@
 #define CANMOB_RX_IDX			(0)
 #define CANMOB_TX_IDX			(1)
 
-static volatile bool sg_bBusy;
+// Timeout for CAN TX in main loop ticks (100ms each)
+#define CAN_TX_TIMEOUT_TICKS	(2)	// 200ms timeout
+
+static volatile uint8_t sg_u8Busy;	// 0 = not busy, >0 = busy with timeout countdown
 static void (*sg_pfRXCallback)(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataLen);
 
 // Maximum size of CAN message
@@ -327,9 +330,9 @@ static void CANSendMessageInternal( ECANMessageType eType,
 		// Already in a retransmit, don't allow nested retries
 		return;
 	}
-	if( bRetransmit || (false == sg_bBusy) )
+	if( bRetransmit || (0 == sg_u8Busy) )
 	{
-		sg_bBusy = true;
+		sg_u8Busy = CAN_TX_TIMEOUT_TICKS;
 		
 		// Save this message info for retransmit later if needed
 		if( false == bRetransmit )
@@ -470,8 +473,8 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 		{
 			// Clear it
 			CANSTMOB &= ~(1 << TXOK);
-		
-			sg_bBusy = false;
+
+			sg_u8Busy = 0;
 		}
 		
 		// RX success, just clear it since this is the TX context
@@ -498,7 +501,7 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 			else
 			{
 				// Retries exhausted.  Give up
-				sg_bBusy = false;
+				sg_u8Busy = 0;
                 sg_bInRetransmit = false;
 			}
 		}
@@ -589,7 +592,7 @@ ISR(CAN_INT_vect, ISR_BLOCK)
 		else
 		{
 			// Retries exhausted.  Give up
-			sg_bBusy = false;
+			sg_u8Busy = 0;
 		}
 	}
 
@@ -605,7 +608,7 @@ bool CANSendMessage( ECANMessageType eType,
 {
 	// If we're busy, kick it back so we're cooperatively multitasking
 	// rather than spin locking
-	if (sg_bBusy)
+	if (sg_u8Busy)
 	{
 		return(false);
 	}
@@ -646,6 +649,53 @@ void CANInit( void )
 
 	// Enable the bus
 	CANGCON = (1 << ENASTB);
-	sg_bBusy = false;
+	sg_u8Busy = 0;
+}
+
+void CANCheckTxStatus(void)
+{
+	// Only check if we think we're busy
+	if (sg_u8Busy > 0)
+	{
+		// Save current MOB and switch to TX MOB
+		uint8_t savedMOB = CANPAGE;
+		CANPAGE = CANMOB_TX_IDX << MOBNB0;
+
+		// Check if transmission completed successfully
+		if (CANSTMOB & (1 << TXOK))
+		{
+			// Clear the flag
+			CANSTMOB &= ~(1 << TXOK);
+			sg_u8Busy = 0;
+		}
+		// Check for transmission errors
+		else if (CANSTMOB & ((1 << BERR) | (1 << SERR) | (1 << CERR) | (1 << FERR) | (1 << AERR)))
+		{
+			// Clear all error flags and reset busy flag
+			CANSTMOB = 0x00;
+			sg_u8Busy = 0;
+
+			// Note: We're not retrying here - that's handled in the interrupt handler
+			// This is just a recovery mechanism if things get stuck
+		}
+		else
+		{
+			// No completion or error yet, decrement timeout counter
+			sg_u8Busy--;
+
+			// If timeout expired, force clear
+			if (sg_u8Busy == 0)
+			{
+				// Clear any pending status and reset the MOB
+				CANSTMOB = 0x00;
+				CANCDMOB = 0x00;
+
+				// Could optionally count timeout events here for diagnostics
+			}
+		}
+
+		// Restore MOB
+		CANPAGE = savedMOB;
+	}
 }
 

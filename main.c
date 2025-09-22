@@ -2392,6 +2392,9 @@ int main(void)
 			sg_bNewTick = false;  // set tru in periodic tick isr, cleared in main loop
 			uint8_t u8Reply[CAN_STATUS_RESPONSE_SIZE];
 
+			// Check CAN TX status every tick (100ms) for recovery from stuck transmissions
+			CANCheckTxStatus();
+
 			// Clear separation of registered vs unregistered behavior
 			if (!sg_bModuleRegistered)
 			{

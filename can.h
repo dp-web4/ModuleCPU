@@ -35,5 +35,6 @@ extern bool CANSendMessage( ECANMessageType eType,
 							uint8_t* pu8Data,
 							uint8_t u8DataLen );
 extern void CANPoll( void );
+extern void CANCheckTxStatus( void );
 
 #endif	// _CAN_H_
