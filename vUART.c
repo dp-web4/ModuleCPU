@@ -51,8 +51,9 @@
 // measured to ensure the per-bit time matches VUART_BIT_TICKS
 // microseconds and accounts for CPU/interrupt/preamble overhead.
 
-// #define VUART_BIT_START_OFSET 9  // add to first bit, 7 has worked so far - no longer used!
-#define VUART_BIT_TICK_OFFSET 7  // subtract per bit except first, 7 has worked best so far
+// Now using VUART_ISR_OVERHEAD and VUART_SAMPLE_OFFSET from Shared.h
+// Was using 7, now set to 0 in Shared.h for nominal timing experiments
+#define VUART_BIT_TICK_OFFSET VUART_ISR_OVERHEAD  // Alias for compatibility
 
 // Uncomment to enable profiler code FOR TESTING ONLY, DO NOT LEAVE ON IN PRODUCTION
 // NOTE: Moved from PC7 to PD5 (PC7 drives flipflop clock on REV E+)
@@ -253,7 +254,7 @@ ISR(INT1_vect, ISR_BLOCK)
 		// Program up the timer to interrupt about 1.5 bit's worth, which
 		// puts it almost in the center of the next bit. The added value 
 
-		TIMER_CHB_INT( VUART_BIT_TICKS + (VUART_BIT_TICKS/2) - VUART_BIT_TICK_OFFSET);  // start bit + half of first bit - ISR response (empirical)
+		TIMER_CHB_INT( VUART_BIT_TICKS + VUART_SAMPLE_OFFSET);  // start bit + sample offset to middle of first data bit
 		
 		// Switch to any-edge detection for timing correction
 		VUART_RX_ANY_EDGE();
