@@ -47,6 +47,10 @@
 
 //#define PauseCAN 1  // comment out if not using
 
+// Enable edge-triggered timing correction during VUART reception
+// Comment out to use fixed timing (recommended for now)
+//#define ENABLE_EDGE_SYNC
+
 //The subtracted value for next bit time is empirically
 // measured to ensure the per-bit time matches VUART_BIT_TICKS
 // microseconds and accounts for CPU/interrupt/preamble overhead.
@@ -98,6 +102,7 @@ static volatile bool sg_bCellReportsReuested;
 // And the next bit we want to transmit
 static volatile bool sg_bMCTxNextBit;
 
+#ifdef ENABLE_EDGE_SYNC
 // Edge-triggered timing correction variables
 static volatile int8_t sg_minTimingError;      // Minimum timing error seen (in timer ticks)
 static volatile int8_t sg_maxTimingError;      // Maximum timing error seen (in timer ticks)
@@ -107,6 +112,7 @@ static volatile uint8_t sg_lastEdgeTimer;      // Timer value at last edge
 // Timing correction configuration
 #define TIMING_TOLERANCE 3      // Only correct if error > 3 timer ticks
 #define MAX_CORRECTION 5        // Maximum correction per edge (prevent oscillation)
+#endif
 
 static volatile uint8_t sg_u8SendIndex;						// Index to be sent next
 static volatile uint8_t sg_u8SendData[2];					// Storage for value to be sent
@@ -255,10 +261,15 @@ ISR(INT1_vect, ISR_BLOCK)
 		// puts it almost in the center of the next bit. The added value 
 
 		TIMER_CHB_INT( VUART_BIT_TICKS + VUART_SAMPLE_OFFSET);  // start bit + sample offset to middle of first data bit
-		
+
+#ifdef ENABLE_EDGE_SYNC
 		// Switch to any-edge detection for timing correction
 		VUART_RX_ANY_EDGE();
 		// Note: interrupt remains enabled for edge detection during reception
+#else
+		// Disable interrupt until next byte (fixed timing mode)
+		VUART_RX_DISABLE();
+#endif
 	
 //		if (sg_bState)
 //		{
@@ -282,27 +293,29 @@ ISR(INT1_vect, ISR_BLOCK)
 	    CANGIE &= ~(1 << ENIT);
 #endif
 	}
+#ifdef ENABLE_EDGE_SYNC
 	else if (sg_eCell_mc_rxState == ESTATE_RX_DATA && sg_u8Cell_mc_rxBitCount > 0)
 	{
 		// This is an edge during data reception - always resync to it
 		// (we skip bit 0 since we just set up timing)
-		
+
 		// Calculate timing error for statistics only
 		uint8_t currentTimer = TCNT0;
 		uint8_t expectedTimer = (uint8_t)(OCR0B - (VUART_BIT_TICKS/2));
 		int8_t timingError = (int8_t)(currentTimer - expectedTimer);
-		
+
 		// Update statistics
 		if (timingError < sg_minTimingError) sg_minTimingError = timingError;
 		if (timingError > sg_maxTimingError) sg_maxTimingError = timingError;
-		
+
 		// ALWAYS resync: edge just occurred, so set timer to fire at mid-bit
-		// Subtract tick offset to account for timer interrupt latency
-		OCR0B = (uint8_t)(TCNT0 + (VUART_BIT_TICKS/2) - VUART_BIT_TICK_OFFSET);
-		
+		// Use VUART_SAMPLE_OFFSET for consistency with start bit detection
+		OCR0B = (uint8_t)(TCNT0 + VUART_SAMPLE_OFFSET);
+
 		// Increment correction counter
 		sg_edgeCorrections++;
 	}
+#endif
 	// else spurious interrupt, ignore
 		
 }
@@ -356,7 +369,12 @@ ISR(TIMER0_COMPB_vect, ISR_BLOCK)
 
 		// Switch back to rising edge detection for next start bit (signal inverted by level shifters)
 		VUART_RX_RISING_EDGE();
+#ifdef ENABLE_EDGE_SYNC
 		// Note: interrupt is already enabled, just changing edge type
+#else
+		// Re-enable interrupt for next start bit (was disabled after start bit)
+		VUART_RX_ENABLE();
+#endif
 		
 		// stop the timed bit interrupts
 		TIMER_CHB_INT_DISABLE();
@@ -488,9 +506,11 @@ void vUARTInit(void)
 void vUARTInitReceive(void)
 {
 	// Reset timing correction statistics
+#ifdef ENABLE_EDGE_SYNC
 	sg_minTimingError = 127;     // Max positive value for int8_t
 	sg_maxTimingError = -128;    // Max negative value for int8_t
 	sg_edgeCorrections = 0;
+#endif
 	
 	// Enable receives
 	VUART_RX_ENABLE();
