@@ -23,7 +23,9 @@ main.d main.o: .././main.c \
  .././debugSerial.h .././rtc_mcp7940n.h \
  c:\program\ files\microchip\xc8\v2.36\avr\avr\include\time.h \
  c:\program\ files\microchip\xc8\v2.36\avr\avr\include\sys\time.h \
- .././can.h .././STORE.h ../adc.h ../vUART.h .././EEPROM.h .././SD.h
+ .././can.h .././STORE.h \
+ c:\program\ files\microchip\xc8\v2.36\avr\lib\gcc\avr\5.4.0\include\stddef.h \
+ ../adc.h ../vUART.h .././EEPROM.h .././SD.h
 
 c:\program\ files\microchip\xc8\v2.36\avr\lib\gcc\avr\5.4.0\include\stdint.h:
 
@@ -84,6 +86,8 @@ c:\program\ files\microchip\xc8\v2.36\avr\avr\include\sys\time.h:
 .././can.h:
 
 .././STORE.h:
+
+c:\program\ files\microchip\xc8\v2.36\avr\lib\gcc\avr\5.4.0\include\stddef.h:
 
 ../adc.h:
 

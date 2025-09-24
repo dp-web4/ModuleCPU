@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <adc.h>  
+#include <stddef.h>  // For offsetof macro
+#include <adc.h>
 #include <vUART.h>
 
 // Define constants
@@ -75,6 +76,7 @@ typedef struct __attribute__((aligned(4))) {
 	uint16_t sg_u16BytesReceived;
 	uint8_t sg_u8CellCPUCount;     // for the frame
 	uint8_t sg_u8MCRXFramingErrors;
+	uint8_t sg_u8LastCompleteCellCount;  // Cell count from last complete frame (for MODULE_DETAIL responses)
 
 // processed data, calculated at start of each WRITE frame
 	uint16_t u16frameCurrent;
@@ -95,8 +97,21 @@ typedef struct __attribute__((aligned(4))) {
 	CellData StringData[ MAX_CELLS ];
 } FrameData;
 
-#define SECTORS_PER_FRAME ((sizeof(FrameData) + SECTOR_SIZE - 1) / SECTOR_SIZE)  // Round up to nearest sector
-#define FRAME_BUFFER_SIZE (SECTORS_PER_FRAME * SECTOR_SIZE)
+// Define the desired frame size to be exactly 2 sectors (1024 bytes)
+#define FRAME_SIZE_TARGET 1024
+
+// Calculate padding needed - this will be computed at compile time
+#define FRAME_SIZE_WITHOUT_PADDING (offsetof(FrameData, StringData) + sizeof(CellData) * MAX_CELLS)
+#define FRAME_PADDING_NEEDED (FRAME_SIZE_TARGET - FRAME_SIZE_WITHOUT_PADDING)
+
+// Extended frame structure with padding to make exactly 1024 bytes
+typedef struct __attribute__((aligned(4))) {
+	FrameData frame;
+	uint8_t padding[FRAME_PADDING_NEEDED];
+} FrameDataPadded;
+
+#define SECTORS_PER_FRAME 2  // Always 2 sectors (1024 bytes)
+#define FRAME_BUFFER_SIZE 1024  // Exactly 1024 bytes
 
 
 

@@ -1885,51 +1885,55 @@ if(0)
 		bool bSuccess;
 		uint16_t u16Voltage = 0;
 		int16_t s16Temperature = 0;
-		
-		// Check if this cell index has valid data in StringData
-		// We check against expected count since sg_u8CellCPUCount gets reset to 0
-		if (sg_u8CellStatus < sg_sFrame.sg_u8CellCountExpected)
+
+		// sg_u8CellStatus is the cell ID requested by Pack Controller (0-based)
+		uint8_t requestedCellId = sg_u8CellStatus;
+
+		// Use the last complete frame count for stable data
+		uint8_t cellsReceived = sg_sFrame.sg_u8LastCompleteCellCount;
+
+		// Map the requested cell ID to actual position in StringData
+		// The cells report in reverse order through VUART:
+		// - Last functional cell (cellsReceived-1) is at StringData[0]
+		// - First cell (Cell 0) is at StringData[cellsReceived-1]
+		// Mapping: actualIndex = (cellsReceived - 1) - requestedCellId
+
+		if (requestedCellId < cellsReceived && cellsReceived > 0)
 		{
-			// Get raw values from StringData
-			uint16_t u16RawVoltage = sg_sFrame.StringData[sg_u8CellStatus].voltage;
-			int16_t s16RawTemp = sg_sFrame.StringData[sg_u8CellStatus].temperature;
-			
-			// Convert voltage to millivolts using CellDataConvertVoltage
-			// This checks limits, scales to mV, and clears unused bits
-			if (!CellDataConvertVoltage(u16RawVoltage, &u16Voltage))
+			// Cell did report - calculate mapped index
+			uint8_t actualIndex = (cellsReceived - 1) - requestedCellId;
+
+			if (actualIndex < MAX_CELLS)
 			{
-				// Invalid voltage, send 0
-				u16Voltage = 0;
-			}
-			
-			// For temperature, we need to check if it's valid but NOT convert it again
-			// The stats already have converted temperatures, but individual cells need conversion
-			// Since we're getting the raw value from StringData, we need to convert it
-			if (CellDataConvertTemperature(s16RawTemp, NULL))  // Just check validity
-			{
-				// Temperature is valid, now convert it properly for MODULE_DETAIL
-				// Actually convert the temperature for the response
-				CellDataConvertTemperature(s16RawTemp, &s16Temperature);
-			}
-			else
-			{
-				// Invalid temperature
-				s16Temperature = 0;
+				// Get raw values from StringData using mapped index
+				uint16_t u16RawVoltage = sg_sFrame.StringData[actualIndex].voltage;
+				int16_t s16RawTemp = sg_sFrame.StringData[actualIndex].temperature;
+
+				// Convert voltage to millivolts using CellDataConvertVoltage
+				if (!CellDataConvertVoltage(u16RawVoltage, &u16Voltage))
+				{
+					u16Voltage = 0;
+				}
+
+				// Convert temperature
+				if (CellDataConvertTemperature(s16RawTemp, &s16Temperature))
+				{
+					// Temperature is valid
+				}
+				else
+				{
+					s16Temperature = 0;
+				}
 			}
 		}
-		else
-		{
-			// Cell hasn't reported - send zeros
-			u16Voltage = 0;
-			s16Temperature = 0;
-		}
+		// else: Cell hasn't reported - leave as zeros
 		
 		// Always send the response, even for non-communicating cells
 		// First byte is the cell ID
-		pu8Response[0] = sg_u8CellStatus;
-		
-		// Expected total cell count
-		pu8Response[1] = sg_sFrame.sg_u8CellCountExpected;
+		pu8Response[0] = requestedCellId;
+
+		// Report the count of cells that actually reported in last complete frame
+		pu8Response[1] = cellsReceived;
 		
 		// Cell temperature
 		pu8Response[2] = (uint8_t) s16Temperature;
@@ -2171,11 +2175,14 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 		CellDataConvertTemperature(s16LowestCellTempRAW,&sg_sFrame.sg_s16LowestCellTemp);
 	}
 
+	// Save the cell count from this complete frame for MODULE_DETAIL responses
+	// This provides stable data even while the next frame is being collected
+	sg_sFrame.sg_u8LastCompleteCellCount = sg_sFrame.sg_u8CellCPUCount;
 
 	// Write the cell data out to file
 	if ((sg_bSDCardReady) && (EMODSTATE_OFF != sg_eModuleControllerStateCurrent))
 	{
-		sg_bSDCardReady = STORE_WriteFrame(&sg_sFrame);  
+		sg_bSDCardReady = STORE_WriteFrame(&sg_sFrame);
 	}
 
 	// Don't send unsolicited status - Pack Controller will request when needed
@@ -2464,7 +2471,7 @@ int main(void)
 				{
 					sg_bFrameStart = false;
 					CellStringPowerStateMachine(); // if we just turned off the string it will clear out frame
-				
+
 					vUARTRXEnd();  // wrap up previous read
 					CellStringProcess(u8Reply);  // get it processed
 

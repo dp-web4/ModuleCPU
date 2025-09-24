@@ -18,7 +18,9 @@ adc.d adc.o: .././adc.c \
  c:\program\ files\microchip\xc8\v2.36\avr\avr\include\avr\interrupt.h \
  c:\program\ files\microchip\xc8\v2.36\avr\avr\include\avr\sleep.h \
  c:\program\ files\microchip\xc8\v2.36\avr\avr\include\avr\wdt.h \
- .././main.h .././adc.h .././STORE.h ../adc.h ../vUART.h
+ .././main.h .././adc.h .././STORE.h \
+ c:\program\ files\microchip\xc8\v2.36\avr\lib\gcc\avr\5.4.0\include\stddef.h \
+ ../adc.h ../vUART.h
 
 c:\program\ files\microchip\xc8\v2.36\avr\lib\gcc\avr\5.4.0\include\stdint.h:
 
@@ -63,6 +65,8 @@ c:\program\ files\microchip\xc8\v2.36\avr\avr\include\avr\wdt.h:
 .././adc.h:
 
 .././STORE.h:
+
+c:\program\ files\microchip\xc8\v2.36\avr\lib\gcc\avr\5.4.0\include\stddef.h:
 
 ../adc.h:
 
