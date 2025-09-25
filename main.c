@@ -78,6 +78,9 @@ static volatile eWDTstatus __attribute__((section(".noinit"))) sg_eWDTCurrentSta
 // 16 Bit hardware compatibility value for module hardware compatibility command
 #define HARDWARE_COMPATIBILITY				0x0000
 
+// Number of consecutive partial string reports to tolerate before power cycling string
+#define SEQUENTIAL_COUNT_MISMATCH_THRESHOLD	5
+
 // Value returned when cell temperature is invalid
 #define CELL_TEMPERATURE_INVALID			0x7fff
 
@@ -240,7 +243,7 @@ volatile static EFrameType __attribute__((section(".noinit"))) sg_eFrameStatus; 
 volatile static bool __attribute__((section(".noinit"))) sg_bNewTick;  // set tru in periodic tick isr, cleared in main loop
 
 // # Of sequential cell count expected vs. received messages.
-volatile static uint8_t __attribute__((section(".noinit"))) sg_u8SequentailCountMismatchThreshold;
+// Removed sg_u8SequentailCountMismatchThreshold - now using SEQUENTIAL_COUNT_MISMATCH_THRESHOLD #define
 
 // Incremented each time there's a cell count mismatch from what we get vs. what
 // we expect
@@ -2046,56 +2049,55 @@ if(0)
 
 static void CellStringProcess(uint8_t *pu8Response)  // no longer does float calcs on every cell, doesn't do anything with pu8Response
 {
-	// If nothing to do, don't do anything
-	if (!sg_sFrame.sg_u16BytesReceived)  // didn't get any new bytes
+	// Process even if no bytes received - need to handle timeout case
+	// When sg_u16BytesReceived == 0, sg_u8CellCPUCount will also be 0
+	// This will trigger the mismatch counter if we're expecting cells
+
+	// Only process cell data if we actually received some
+	if (sg_sFrame.sg_u16BytesReceived)
 	{
-		return;
-	}
+		// Assume there are no I2C errors...
+		sg_sFrame.sg_u8CellFirstI2CError = 0xff;
 
-
-	// Assume there are no I2C errors...
-	sg_sFrame.sg_u8CellFirstI2CError = 0xff;
-
-	// Update comm stats
-	if (sg_sFrame.sg_u8CellCPUCountFewest > sg_sFrame.sg_u8CellCPUCount)
-	{
-		sg_sFrame.sg_u8CellCPUCountFewest = sg_sFrame.sg_u8CellCPUCount;
-		sg_bSendCellCommStatus = true;
-	}
-	if (sg_sFrame.sg_u8CellCPUCountMost < sg_sFrame.sg_u8CellCPUCount)
-	{
-		sg_sFrame.sg_u8CellCPUCountMost = sg_sFrame.sg_u8CellCPUCount;
-		sg_bSendCellCommStatus = true;
-	}
-
-
-	// OK, we have at least one. Let's see if the cell count is
-	// reasonable. If it isn't, flag it as a framing error
-	if (sg_sFrame.sg_u16BytesReceived & (((1 << BYTES_PER_CELL_SHIFT) - 1))) // number of bytes not evenly divisible by bytes per cell
-	{
-		if (sg_sFrame.sg_u8MCRXFramingErrors != 0xff)
+		// Update comm stats
+		if (sg_sFrame.sg_u8CellCPUCountFewest > sg_sFrame.sg_u8CellCPUCount)
 		{
-			sg_sFrame.sg_u8MCRXFramingErrors++;
+			sg_sFrame.sg_u8CellCPUCountFewest = sg_sFrame.sg_u8CellCPUCount;
 			sg_bSendCellCommStatus = true;
 		}
-	}
+		if (sg_sFrame.sg_u8CellCPUCountMost < sg_sFrame.sg_u8CellCPUCount)
+		{
+			sg_sFrame.sg_u8CellCPUCountMost = sg_sFrame.sg_u8CellCPUCount;
+			sg_bSendCellCommStatus = true;
+		}
 
-	// Find the highest and lowest temperatures and voltages for this batch of cell data
-	sg_sFrame.sg_u16HighestCellVoltage = 0;
-	sg_sFrame.sg_u16LowestCellVoltage  = 0xffff;
-	sg_sFrame.sg_u16AverageCellVoltage = 0;
-	sg_sFrame.sg_s16HighestCellTemp = -32768;
-	sg_sFrame.sg_s16LowestCellTemp = 32767;
-	sg_sFrame.sg_s16AverageCellTemp = 0;
-	int16_t s16HighestCellTempRAW = -32768;  // keep stats in RAW
-	int16_t s16LowestCellTempRAW = 32767;
-	int32_t s32TempTotal = 0;
-	uint32_t u32CellVoltageTotalmV = 0;		// All cell CPU voltages added up, RAW
-	uint8_t u8CellVoltageCount = 0;
-	uint8_t u8CellTemperatureCount = 0;
+		// OK, we have at least one. Let's see if the cell count is
+		// reasonable. If it isn't, flag it as a framing error
+		if (sg_sFrame.sg_u16BytesReceived & (((1 << BYTES_PER_CELL_SHIFT) - 1))) // number of bytes not evenly divisible by bytes per cell
+		{
+			if (sg_sFrame.sg_u8MCRXFramingErrors != 0xff)
+			{
+				sg_sFrame.sg_u8MCRXFramingErrors++;
+				sg_bSendCellCommStatus = true;
+			}
+		}
 
-	for (uint8_t u8CellIndex = 0; u8CellIndex < sg_sFrame.sg_u8CellCPUCount; u8CellIndex++)  // process however many cells we received
-	{
+		// Find the highest and lowest temperatures and voltages for this batch of cell data
+		sg_sFrame.sg_u16HighestCellVoltage = 0;
+		sg_sFrame.sg_u16LowestCellVoltage  = 0xffff;
+		sg_sFrame.sg_u16AverageCellVoltage = 0;
+		sg_sFrame.sg_s16HighestCellTemp = -32768;
+		sg_sFrame.sg_s16LowestCellTemp = 32767;
+		sg_sFrame.sg_s16AverageCellTemp = 0;
+		int16_t s16HighestCellTempRAW = -32768;  // keep stats in RAW
+		int16_t s16LowestCellTempRAW = 32767;
+		int32_t s32TempTotal = 0;
+		uint32_t u32CellVoltageTotalmV = 0;		// All cell CPU voltages added up, RAW
+		uint8_t u8CellVoltageCount = 0;
+		uint8_t u8CellTemperatureCount = 0;
+
+		for (uint8_t u8CellIndex = 0; u8CellIndex < sg_sFrame.sg_u8CellCPUCount; u8CellIndex++)  // process however many cells we received
+		{
 		uint16_t u16Voltage = sg_sFrame.StringData[u8CellIndex].voltage;
 		int16_t s16Temperature = sg_sFrame.StringData[u8CellIndex].temperature;
 		
@@ -2153,30 +2155,38 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 		}
 	}
 
-	if (u8CellVoltageCount)  // got at least some
-	{
-		sg_sFrame.sg_u32CellVoltageTotal = u32CellVoltageTotalmV;
-		sg_sFrame.sg_u16AverageCellVoltage = (uint16_t)(sg_sFrame.sg_u32CellVoltageTotal / u8CellVoltageCount);
-
-		if ((EMODSTATE_ON != sg_eModuleControllerStateCurrent) &&
-		(false == sg_bCellBalancedOnce) &&
-		(sg_sFrame.sg_u16HighestCellVoltage >= sg_sFrame.sg_u16LowestCellVoltage) &&
-		((sg_sFrame.sg_u16HighestCellVoltage - sg_sFrame.sg_u16LowestCellVoltage) >= BALANCE_VOLTAGE_THRESHOLD))
+		if (u8CellVoltageCount)  // got at least some
 		{
-			sg_bCellBalanceReady = true;
+			sg_sFrame.sg_u32CellVoltageTotal = u32CellVoltageTotalmV;
+			sg_sFrame.sg_u16AverageCellVoltage = (uint16_t)(sg_sFrame.sg_u32CellVoltageTotal / u8CellVoltageCount);
+
+			if ((EMODSTATE_ON != sg_eModuleControllerStateCurrent) &&
+			(false == sg_bCellBalancedOnce) &&
+			(sg_sFrame.sg_u16HighestCellVoltage >= sg_sFrame.sg_u16LowestCellVoltage) &&
+			((sg_sFrame.sg_u16HighestCellVoltage - sg_sFrame.sg_u16LowestCellVoltage) >= BALANCE_VOLTAGE_THRESHOLD))
+			{
+				sg_bCellBalanceReady = true;
+			}
 		}
-	}
 
-	if (u8CellTemperatureCount)  // got at least some
+		if (u8CellTemperatureCount)  // got at least some
+		{
+			int16_t s16AverageTempRAW = (int16_t)(s32TempTotal / u8CellTemperatureCount);
+			CellDataConvertTemperature(s16AverageTempRAW,&sg_sFrame.sg_s16AverageCellTemp);
+			CellDataConvertTemperature(s16HighestCellTempRAW,&sg_sFrame.sg_s16HighestCellTemp);
+			CellDataConvertTemperature(s16LowestCellTempRAW,&sg_sFrame.sg_s16LowestCellTemp);
+		}
+
+	}  // end if (sg_sFrame.sg_u16BytesReceived)
+	else
 	{
-		int16_t s16AverageTempRAW = (int16_t)(s32TempTotal / u8CellTemperatureCount);
-		CellDataConvertTemperature(s16AverageTempRAW,&sg_sFrame.sg_s16AverageCellTemp);
-		CellDataConvertTemperature(s16HighestCellTempRAW,&sg_sFrame.sg_s16HighestCellTemp);
-		CellDataConvertTemperature(s16LowestCellTempRAW,&sg_sFrame.sg_s16LowestCellTemp);
+		// No bytes received - complete VUART failure
+		// sg_u8CellCPUCount will remain 0 from vUARTRXEnd()
 	}
 
-	// Save the cell count from this complete frame for MODULE_DETAIL responses
-	// This provides stable data even while the next frame is being collected
+	// Always update the last complete cell count - even if 0
+	// This tells pack controller how many cells we actually received
+	// Pack controller will mark data as stale if this doesn't match expected
 	sg_sFrame.sg_u8LastCompleteCellCount = sg_sFrame.sg_u8CellCPUCount;
 
 	// Write the cell data out to file
@@ -2324,7 +2334,7 @@ int main(void)
 	
 		// And how many sequential incorrect cell count until we reset the
 		// chain?
-		sg_u8SequentailCountMismatchThreshold = EEPROMRead(EEPROM_SEQUENTIAL_COUNT_MISMATCH);
+		// Removed EEPROM read - now using SEQUENTIAL_COUNT_MISMATCH_THRESHOLD #define
 
 		// Cache the unique ID from EEPROM to avoid repeated reads during message formation
 
@@ -2369,7 +2379,7 @@ int main(void)
 		sg_u8CellStatus = 0;
 		sg_u8SOC = 0;
 		sg_u8SOH = 0;
-		sg_u8SequentailCountMismatchThreshold = 0;
+		// Removed initialization - now using SEQUENTIAL_COUNT_MISMATCH_THRESHOLD #define
 		sg_u8SequentailCellCountMismatches = 0;
 
 	
@@ -2480,21 +2490,21 @@ int main(void)
 					{
 						// We're operational. If we didn't get the number of cells we expect
 						// increment sg_u8SequentailCellCountMismatches. If this exceeds
-						// sg_u8SequentailCountMismatchThreshold, reset the chain. Setting to 0 will
+						// SEQUENTIAL_COUNT_MISMATCH_THRESHOLD, reset the chain. Setting to 0 will
 						// disable the cell string reset.
 						if ((sg_sFrame.sg_u8CellCPUCount != sg_sFrame.sg_u8CellCountExpected) &&
 						(sg_sFrame.sg_u8CellCountExpected))
 						{
-							if ((0 != sg_u8SequentailCountMismatchThreshold) &&  // feature disabled in EEPROM
-							(0xff != sg_u8SequentailCountMismatchThreshold))  // unprogrammed EEPROM
+							#if (SEQUENTIAL_COUNT_MISMATCH_THRESHOLD > 0)  // Feature enabled at compile time
 							{
 								++sg_u8SequentailCellCountMismatches;
-								if ((sg_u8SequentailCellCountMismatches >= sg_u8SequentailCountMismatchThreshold))
+								if ((sg_u8SequentailCellCountMismatches >= SEQUENTIAL_COUNT_MISMATCH_THRESHOLD))
 								{
 									sg_eStringPowerState = ESTRING_OFF;  // this will turn string off on the start of read frame
 									sg_u8SequentailCellCountMismatches = 0; // reset the timer
 								}
 							}
+							#endif
 						}
 						else
 						{
