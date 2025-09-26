@@ -2027,15 +2027,31 @@ if(0)
 		// Get current thresholds
 		CurrentThresholdsGet((uint16_t *) (pu8Response + sizeof(uint16_t)),
 							 (uint16_t *) (pu8Response));
-				
+
 		// 16 Bit maximum end of charge voltage
-		pu8Response[4] = 0;
-		pu8Response[5] = 0;
-				
+		// Calculate as: cells_expected * chemistry_voltage * charge_margin
+		// Encoded in 0.015V (15mV) increments to match module voltage reporting
+		{
+			#define CHEMISTRY_VOLTAGE_MV  4200  // 4.2V per cell in millivolts
+			#define CHARGE_MARGIN_PERCENT 95    // 0.95 as percentage
+
+			uint32_t u32EndOfChargeVoltage;
+
+			// Calculate: cells * 4.2V * 0.95 in millivolts
+			u32EndOfChargeVoltage = (uint32_t)sg_sFrame.sg_u8CellCountExpected * CHEMISTRY_VOLTAGE_MV;
+			u32EndOfChargeVoltage = (u32EndOfChargeVoltage * CHARGE_MARGIN_PERCENT) / 100;
+
+			// Convert from millivolts to 0.015V (15mV) increments
+			u32EndOfChargeVoltage = u32EndOfChargeVoltage / 15;
+
+			pu8Response[4] = (uint8_t) u32EndOfChargeVoltage;
+			pu8Response[5] = (uint8_t) (u32EndOfChargeVoltage >> 8);
+		}
+
 		// 16 Bit hardware compatibility fields
 		pu8Response[6] = (uint8_t) HARDWARE_COMPATIBILITY;
 		pu8Response[7] = (uint8_t) (HARDWARE_COMPATIBILITY >> 8);
-				
+
 		// Only clear the flag if the message was successfully sent
 		// This re-enables retries if CAN is busy
 		if (CANSendMessage( ECANMessageType_ModuleHardwareDetail, pu8Response, CAN_STATUS_RESPONSE_SIZE ))
