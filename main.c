@@ -2036,11 +2036,12 @@ if(0)
 		pu8Response[6] = (uint8_t) HARDWARE_COMPATIBILITY;
 		pu8Response[7] = (uint8_t) (HARDWARE_COMPATIBILITY >> 8);
 				
-		CANSendMessage( ECANMessageType_ModuleHardwareDetail, pu8Response, CAN_STATUS_RESPONSE_SIZE );
-
-		// Clear the flag regardless of success - hardware detail is not critical
-		// If it fails due to busy CAN, we don't want to keep retrying forever
-		sg_bSendHardwareDetail = false;
+		// Only clear the flag if the message was successfully sent
+		// This re-enables retries if CAN is busy
+		if (CANSendMessage( ECANMessageType_ModuleHardwareDetail, pu8Response, CAN_STATUS_RESPONSE_SIZE ))
+		{
+			sg_bSendHardwareDetail = false;
+		}
 	}
 }
 
