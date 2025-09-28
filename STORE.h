@@ -37,6 +37,10 @@ typedef struct __attribute__((aligned(4))) {
 	int16_t temperature;
 } CellData;
 
+// Invalid cell markers - indicates cell didn't report in this reading
+#define INVALID_CELL_VOLTAGE  0xFFFF
+#define INVALID_CELL_TEMP     0x7FFF  // Max int16_t value
+
 
 typedef struct
 {
@@ -106,13 +110,40 @@ typedef struct __attribute__((aligned(4))) {
 } FrameData;
 
 // Helper functions for accessing cell data in the buffer
-// Get pointer to the current string reading in buffer (for now, just use start of buffer)
+
+// Get pointer to a specific string reading slot (0 to nstrings-1)
+static inline CellData* GetStringDataAtIndex(FrameData* frame, uint16_t index) {
+	uint16_t bytes_per_string = frame->m.sg_u8CellCountExpected * sizeof(CellData);
+	uint16_t offset = index * bytes_per_string;
+	return (CellData*)(&frame->c[offset]);
+}
+
+static inline volatile CellData* GetStringDataAtIndexVolatile(volatile FrameData* frame, uint16_t index) {
+	uint16_t bytes_per_string = frame->m.sg_u8CellCountExpected * sizeof(CellData);
+	uint16_t offset = index * bytes_per_string;
+	return (volatile CellData*)(&frame->c[offset]);
+}
+
+// Get pointer to current writing slot
 static inline CellData* GetStringData(FrameData* frame) {
-	return (CellData*)(frame->c);
+	return GetStringDataAtIndex(frame, frame->m.currentIndex);
 }
 
 static inline volatile CellData* GetStringDataVolatile(volatile FrameData* frame) {
-	return (volatile CellData*)(frame->c);
+	return GetStringDataAtIndexVolatile(frame, frame->m.currentIndex);
+}
+
+// Get pointer to most recent complete reading (for CAN responses)
+static inline volatile CellData* GetLatestCompleteString(volatile FrameData* frame) {
+	// If we have at least one complete reading, return the previous slot
+	if (frame->m.readingCount > 0) {
+		uint16_t lastIndex = (frame->m.currentIndex == 0) ?
+		                     (frame->m.nstrings - 1) :
+		                     (frame->m.currentIndex - 1);
+		return GetStringDataAtIndexVolatile(frame, lastIndex);
+	}
+	// Otherwise return current slot (may be incomplete)
+	return GetStringDataVolatile(frame);
 }
 
 // Define the desired frame size to be exactly 2 sectors (1024 bytes)

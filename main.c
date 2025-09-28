@@ -542,6 +542,34 @@ static void CellCountExpectedSet(uint8_t u8CellCountExpected)
 //	MBASSERT(u8CellCountExpected <= (sizeof(sg_sFrame.m.cellData) >> BYTES_PER_CELL_SHIFT));
 	sg_sFrame.m.sg_u8CellCountExpected = u8CellCountExpected;
 
+	// Calculate how many complete string readings fit in buffer
+	// Each cell = 4 bytes (2 bytes voltage + 2 bytes temperature)
+	uint16_t bytes_per_string = u8CellCountExpected * sizeof(CellData);
+
+	if (bytes_per_string > 0) {
+		sg_sFrame.m.nstrings = FRAME_CELLBUFFER_SIZE / bytes_per_string;
+
+		// Ensure at least 1 string
+		if (sg_sFrame.m.nstrings == 0) {
+			sg_sFrame.m.nstrings = 1;
+		}
+	} else {
+		sg_sFrame.m.nstrings = 1;
+	}
+
+	// Initialize circular buffer indices
+	sg_sFrame.m.currentIndex = 0;
+	sg_sFrame.m.readingCount = 0;
+
+	// Clear entire buffer to invalid markers initially
+	CellData* buffer = (CellData*)sg_sFrame.c;
+	uint16_t totalCells = (FRAME_CELLBUFFER_SIZE / sizeof(CellData));
+	uint16_t i;
+	for (i = 0; i < totalCells; i++) {
+		buffer[i].voltage = INVALID_CELL_VOLTAGE;
+		buffer[i].temperature = INVALID_CELL_TEMP;
+	}
+
 	// Calculate string cell voltage min and max
 	sg_sFrame.m.sg_i32VoltageStringMin = CELL_VOLTAGE_STRING_LOWER * ((int32_t) u8CellCountExpected);  // in millivolts
 	sg_sFrame.m.sg_i32VoltageStringMax = CELL_VOLTAGE_STRING_UPPER * ((int32_t) u8CellCountExpected);	// in millivolts
@@ -1909,8 +1937,8 @@ if(0)
 
 			if (actualIndex < MAX_CELLS)
 			{
-				// Get raw values from StringData using mapped index
-				volatile CellData* stringData = GetStringDataVolatile(&sg_sFrame);
+				// Get raw values from latest complete reading using mapped index
+				volatile CellData* stringData = GetLatestCompleteString(&sg_sFrame);
 				uint16_t u16RawVoltage = stringData[actualIndex].voltage;
 				int16_t s16RawTemp = stringData[actualIndex].temperature;
 
@@ -2209,6 +2237,20 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 	// Pack controller will mark data as stale if this doesn't match expected
 	sg_sFrame.m.sg_u8LastCompleteCellCount = sg_sFrame.m.sg_u8CellCPUCount;
 
+	// Advance circular buffer to next slot after WRITE frame
+	// This happens regardless of how many cells reported (could be partial or zero)
+	// Missing cells retain their INVALID markers
+	if (sg_sFrame.m.nstrings > 0) {
+		sg_sFrame.m.currentIndex = (sg_sFrame.m.currentIndex + 1) % sg_sFrame.m.nstrings;
+
+		if (sg_sFrame.m.readingCount < sg_sFrame.m.nstrings) {
+			sg_sFrame.m.readingCount++;
+		}
+
+		// Increment frame number for this reading (complete or partial)
+		sg_sFrame.m.frameNumber++;
+	}
+
 	// Write the cell data out to file
 	if ((sg_bSDCardReady) && (EMODSTATE_OFF != sg_eModuleControllerStateCurrent))
 	{
@@ -2236,9 +2278,15 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 		}
 		else  // do only if partial init, in full init the memset takes care of all this
 		{
-			// Don't clear cell data buffer - it should persist across frames
-			// This contains the last received cell data and is needed for MODULE_DETAIL responses
-			// Cell data now stored in sg_sFrame.c buffer
+			// Initialize current buffer slot with invalid markers at READ frame start
+			// Any cells that don't report will retain these markers
+			volatile CellData* stringData = GetStringDataVolatile(&sg_sFrame);
+			uint8_t i;
+			for (i = 0; i < sg_sFrame.m.sg_u8CellCountExpected; i++) {
+				stringData[i].voltage = INVALID_CELL_VOLTAGE;
+				stringData[i].temperature = INVALID_CELL_TEMP;
+			}
+
 			sg_sFrame.m.bDischargeOn = false;
 			sg_sFrame.m.sg_u16CellCPUI2CErrors = 0;
 			sg_sFrame.m.sg_u8CellFirstI2CError = 0;
