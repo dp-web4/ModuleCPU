@@ -46,19 +46,19 @@ typedef struct
 
 #define FRAME_VALID_SIG 0xBA77DA7A
 
-// Frame data structure - MUST BE 4-BYTE ALIGNED FOR 32-BIT XFERS
+// Frame metadata structure - contains all the control and status fields
 typedef struct __attribute__((aligned(4))) {
 	uint32_t validSig;  // if != FRAME_VALID_SIG then frame is not valid
 	uint16_t frameBytes;  // actual number of bytes per frame, for diagnostics
 	uint64_t timestamp;
 	uint32_t moduleUniqueId;  // unique ID for this module (from EEPROM)
-	
-// session variables, survive frame write	
+
+// session variables, survive frame write
 	uint8_t sg_u8WDTCount;  // number of WDT resets in current session
 	uint8_t sg_u8CellCPUCountFewest;   // for the session
 	uint8_t sg_u8CellCPUCountMost;     // for the session
 	uint8_t sg_u8CellCountExpected;
-	
+
 	uint16_t u16maxCurrent;  // session current is in units of 0.02A relative to CURRENT_FLOOR	-655.36
 	uint16_t u16minCurrent;
 	uint16_t u16avgCurrent;
@@ -67,8 +67,7 @@ typedef struct __attribute__((aligned(4))) {
 	int32_t sg_i32VoltageStringMin;  // in millivolts
 	int32_t sg_i32VoltageStringMax;  // in millivolts
 	int16_t sg_i16VoltageStringPerADC;  // in ADC_VOLT_FRACTION fractions of millivolts
-	
-	
+
 //	frame variables, reset after frame write
 	bool bDischargeOn;
 	uint16_t sg_u16CellCPUI2CErrors;
@@ -89,35 +88,38 @@ typedef struct __attribute__((aligned(4))) {
 	uint32_t sg_u32CellVoltageTotal;	// All cell CPU voltages added up, in millivolts updated after whole string is processed
 
 	int32_t sg_i32VoltageStringTotal;  // in 15mv increments, from ADC
-	
+
 // ADC stuff
 	SADCReading ADCReadings[ EADCTYPE_COUNT ];
 
-// Cell stuff
+// New circular buffer management fields
+	uint32_t frameNumber;           // Incremental frame counter (persisted in EEPROM)
+	uint16_t nstrings;              // Number of string readings that can fit in buffer
+	uint16_t currentIndex;          // Current position in circular buffer
+	uint16_t readingCount;          // Number of valid readings in buffer
+
+	// Temporary compatibility field - will be replaced with dynamic access to cellBuffer
 	CellData StringData[ MAX_CELLS ];
+} FrameMetadata;
+
+// Frame data structure - MUST BE 4-BYTE ALIGNED FOR 32-BIT XFERS
+typedef struct __attribute__((aligned(4))) {
+	FrameMetadata m;  // All metadata fields
+	uint8_t c[1024 - sizeof(FrameMetadata)];  // Flexible buffer for cell data
 } FrameData;
 
 // Define the desired frame size to be exactly 2 sectors (1024 bytes)
 #define FRAME_SIZE_TARGET 1024
 
-// Calculate padding needed - this will be computed at compile time
-#define FRAME_SIZE_WITHOUT_PADDING (offsetof(FrameData, StringData) + sizeof(CellData) * MAX_CELLS)
-#define FRAME_PADDING_NEEDED (FRAME_SIZE_TARGET - FRAME_SIZE_WITHOUT_PADDING)
-
-// Extended frame structure with padding to make exactly 1024 bytes
-typedef struct __attribute__((aligned(4))) {
-	FrameData frame;
-	uint8_t padding[FRAME_PADDING_NEEDED];
-} FrameDataPadded;
+// Calculate the actual cell buffer size
+#define FRAME_CELLBUFFER_SIZE 896
 
 #define SECTORS_PER_FRAME 2  // Always 2 sectors (1024 bytes)
 #define FRAME_BUFFER_SIZE 1024  // Exactly 1024 bytes
 
-
-
 // Verify frame size at compile time
 #define STATIC_ASSERT(COND,MSG) typedef char static_assertion_##MSG[(COND)?1:-1]
-STATIC_ASSERT(FRAME_BUFFER_SIZE >= sizeof(FrameData), frame_buffer_too_small);
+STATIC_ASSERT(sizeof(FrameData) == FRAME_BUFFER_SIZE, frame_size_mismatch);
 
 
 // Function prototypes

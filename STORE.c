@@ -75,16 +75,16 @@ bool STORE_WriteFrame(volatile FrameData* frame) {
 	uint32_t sectorsToWrite;
 	
 	// Verify frame size
-	if(frame->frameBytes > FRAME_BUFFER_SIZE) {
+	if(frame->m.frameBytes > FRAME_BUFFER_SIZE) {
 		return false;
 	}
-	
+
 	// Copy frame data to our buffer
-	memcpy(frameBuffer, (const void*)frame, frame->frameBytes);
-	
+	memcpy(frameBuffer, (const void*)frame, frame->m.frameBytes);
+
 	// Zero out any remaining buffer space in last sector
-	if(frame->frameBytes < FRAME_BUFFER_SIZE) {
-		memset(frameBuffer + frame->frameBytes, 0, FRAME_BUFFER_SIZE - frame->frameBytes);
+	if(frame->m.frameBytes < FRAME_BUFFER_SIZE) {
+		memset(frameBuffer + frame->m.frameBytes, 0, FRAME_BUFFER_SIZE - frame->m.frameBytes);
 	}
 	
 	// Calculate how many complete sectors we need to write

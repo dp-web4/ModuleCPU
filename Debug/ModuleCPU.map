@@ -847,13 +847,13 @@ END GROUP
                 0x00000000000000da                __data_load_start = LOADADDR (.data)
                 0x00000000000000da                __data_load_end = (__data_load_start + SIZEOF (.data))
 
-.noinit         0x0000000000800102      0x22a
+.noinit         0x0000000000800102      0x422
                 [!provide]                        PROVIDE (__noinit_start, .)
  *(.noinit*)
  *fill*         0x0000000000800102        0x2 
- .noinit        0x0000000000800104      0x228 main.o
+ .noinit        0x0000000000800104      0x420 main.o
                 [!provide]                        PROVIDE (__noinit_end, .)
-                0x000000000080032c                _end = .
+                0x0000000000800524                _end = .
 
 .eeprom         0x0000000000810000        0x0
  *(.eeprom*)
@@ -1038,7 +1038,7 @@ END GROUP
 .debug_pubnames
  *(.debug_pubnames)
 
-.debug_info     0x0000000000000000     0x91a7
+.debug_info     0x0000000000000000     0x92e7
  *(.debug_info .gnu.linkonce.wi.*)
  .debug_info    0x0000000000000000      0xa40 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/xc8/avr/lib/avr5/memx-const/crtatmega64m1.o
  .debug_info    0x0000000000000a40      0x4d8 adc.o
@@ -1046,14 +1046,14 @@ END GROUP
  .debug_info    0x000000000000221f      0x274 debugSerial.o
  .debug_info    0x0000000000002493      0x2a7 EEPROM.o
  .debug_info    0x000000000000273a      0x4ee I2c.o
- .debug_info    0x0000000000002c28     0x2d26 main.o
- .debug_info    0x000000000000594e      0xdfa rtc_mcp7940n.o
- .debug_info    0x0000000000006748     0x10f0 SD.o
- .debug_info    0x0000000000007838      0x3d3 SPI.o
- .debug_info    0x0000000000007c0b      0xecd STORE.o
- .debug_info    0x0000000000008ad8      0x6cf vUART.o
+ .debug_info    0x0000000000002c28     0x2dc6 main.o
+ .debug_info    0x00000000000059ee      0xdfa rtc_mcp7940n.o
+ .debug_info    0x00000000000067e8     0x10f0 SD.o
+ .debug_info    0x00000000000078d8      0x3d3 SPI.o
+ .debug_info    0x0000000000007cab      0xf6d STORE.o
+ .debug_info    0x0000000000008c18      0x6cf vUART.o
 
-.debug_abbrev   0x0000000000000000     0x1ace
+.debug_abbrev   0x0000000000000000     0x1ad7
  *(.debug_abbrev)
  .debug_abbrev  0x0000000000000000      0x9b2 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/xc8/avr/lib/avr5/memx-const/crtatmega64m1.o
  .debug_abbrev  0x00000000000009b2       0xd6 adc.o
@@ -1061,12 +1061,12 @@ END GROUP
  .debug_abbrev  0x0000000000000cfd       0x5f debugSerial.o
  .debug_abbrev  0x0000000000000d5c       0x80 EEPROM.o
  .debug_abbrev  0x0000000000000ddc       0xe8 I2c.o
- .debug_abbrev  0x0000000000000ec4      0x385 main.o
- .debug_abbrev  0x0000000000001249      0x276 rtc_mcp7940n.o
- .debug_abbrev  0x00000000000014bf      0x206 SD.o
- .debug_abbrev  0x00000000000016c5       0xdb SPI.o
- .debug_abbrev  0x00000000000017a0      0x1ba STORE.o
- .debug_abbrev  0x000000000000195a      0x174 vUART.o
+ .debug_abbrev  0x0000000000000ec4      0x38e main.o
+ .debug_abbrev  0x0000000000001252      0x276 rtc_mcp7940n.o
+ .debug_abbrev  0x00000000000014c8      0x206 SD.o
+ .debug_abbrev  0x00000000000016ce       0xdb SPI.o
+ .debug_abbrev  0x00000000000017a9      0x1ba STORE.o
+ .debug_abbrev  0x0000000000001963      0x174 vUART.o
 
 .debug_line     0x0000000000000000     0x3ab2
  *(.debug_line .debug_line.* .debug_line_end)
@@ -1170,295 +1170,295 @@ LOAD data_init
                 0x0000000000000000       0x40 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/xc8/avr/lib/avr5/memx-const/crtatmega64m1.o
 
 .bss.sg_eCurrentType
-                0x000000000080094f        0x1
+                0x0000000000800b47        0x1
  .bss.sg_eCurrentType
-                0x000000000080094f        0x1 adc.o
+                0x0000000000800b47        0x1 adc.o
 
-.bss.sg_eState  0x000000000080096c        0x1
+.bss.sg_eState  0x0000000000800b64        0x1
  .bss.sg_eState
-                0x000000000080096c        0x1 adc.o
+                0x0000000000800b64        0x1 adc.o
 
 .bss.lastREC.2007
-                0x000000000080096d        0x1
+                0x0000000000800b65        0x1
  .bss.lastREC.2007
-                0x000000000080096d        0x1 can.o
+                0x0000000000800b65        0x1 can.o
 
 .bss.lastTEC.2006
-                0x000000000080096e        0x1
+                0x0000000000800b66        0x1
  .bss.lastTEC.2006
-                0x000000000080096e        0x1 can.o
+                0x0000000000800b66        0x1 can.o
 
 .bss.sg_u8TxBackoffDelay
-                0x000000000080096f        0x1
+                0x0000000000800b67        0x1
  .bss.sg_u8TxBackoffDelay
-                0x000000000080096f        0x1 can.o
+                0x0000000000800b67        0x1 can.o
 
 .bss.sg_u8TxOnlyErrorCount
-                0x0000000000800970        0x1
+                0x0000000000800b68        0x1
  .bss.sg_u8TxOnlyErrorCount
-                0x0000000000800970        0x1 can.o
+                0x0000000000800b68        0x1 can.o
 
 .bss.sg_u8BusOffRecoveryDelay
-                0x0000000000800971        0x1
+                0x0000000000800b69        0x1
  .bss.sg_u8BusOffRecoveryDelay
-                0x0000000000800971        0x1 can.o
+                0x0000000000800b69        0x1 can.o
 
 .bss.sg_u16ErrorPassive
-                0x000000000080094d        0x2
+                0x0000000000800b45        0x2
  .bss.sg_u16ErrorPassive
-                0x000000000080094d        0x2 can.o
+                0x0000000000800b45        0x2 can.o
 
 .bss.sg_u16BusOffEvents
-                0x000000000080095c        0x2
+                0x0000000000800b54        0x2
  .bss.sg_u16BusOffEvents
-                0x000000000080095c        0x2 can.o
+                0x0000000000800b54        0x2 can.o
 
 .bss.sg_u16TxOkPolled
-                0x000000000080095e        0x2
+                0x0000000000800b56        0x2
  .bss.sg_u16TxOkPolled
-                0x000000000080095e        0x2 can.o
+                0x0000000000800b56        0x2 can.o
 
 .bss.sg_u16TxErrors
-                0x0000000000800960        0x2
+                0x0000000000800b58        0x2
  .bss.sg_u16TxErrors
-                0x0000000000800960        0x2 can.o
+                0x0000000000800b58        0x2 can.o
 
 .bss.sg_u16TxTimeouts
-                0x0000000000800962        0x2
+                0x0000000000800b5a        0x2
  .bss.sg_u16TxTimeouts
-                0x0000000000800962        0x2 can.o
+                0x0000000000800b5a        0x2 can.o
 
 .bss.sg_bInRetransmit
-                0x0000000000800972        0x1
+                0x0000000000800b6a        0x1
  .bss.sg_bInRetransmit
-                0x0000000000800972        0x1 can.o
+                0x0000000000800b6a        0x1 can.o
 
 .bss.sg_u8LastTXDataLen
-                0x0000000000800973        0x1
+                0x0000000000800b6b        0x1
  .bss.sg_u8LastTXDataLen
-                0x0000000000800973        0x1 can.o
+                0x0000000000800b6b        0x1 can.o
 
 .bss.sg_u8LastTXData
-                0x000000000080093d        0x8
+                0x0000000000800b35        0x8
  .bss.sg_u8LastTXData
-                0x000000000080093d        0x8 can.o
+                0x0000000000800b35        0x8 can.o
 
 .bss.sg_eLastTXType
-                0x0000000000800974        0x1
+                0x0000000000800b6c        0x1
  .bss.sg_eLastTXType
-                0x0000000000800974        0x1 can.o
+                0x0000000000800b6c        0x1 can.o
 
 .bss.sg_u8TransmitAttempts
-                0x0000000000800975        0x1
+                0x0000000000800b6d        0x1
  .bss.sg_u8TransmitAttempts
-                0x0000000000800975        0x1 can.o
+                0x0000000000800b6d        0x1 can.o
 
 .bss.sg_pfRXCallback
-                0x0000000000800964        0x2
+                0x0000000000800b5c        0x2
  .bss.sg_pfRXCallback
-                0x0000000000800964        0x2 can.o
+                0x0000000000800b5c        0x2 can.o
 
-.bss.sg_u8Busy  0x0000000000800976        0x1
+.bss.sg_u8Busy  0x0000000000800b6e        0x1
  .bss.sg_u8Busy
-                0x0000000000800976        0x1 can.o
+                0x0000000000800b6e        0x1 can.o
 
 .bss.sg_u8PCMSK1
-                0x0000000000800977        0x1
+                0x0000000000800b6f        0x1
  .bss.sg_u8PCMSK1
-                0x0000000000800977        0x1 main.o
+                0x0000000000800b6f        0x1 main.o
 
 .bss.sg_u8PCMSK0
-                0x0000000000800978        0x1
+                0x0000000000800b70        0x1
  .bss.sg_u8PCMSK0
-                0x0000000000800978        0x1 main.o
+                0x0000000000800b70        0x1 main.o
 
 .bss.sg_u8UnhandledInterruptVector
-                0x0000000000800979        0x1
+                0x0000000000800b71        0x1
  .bss.sg_u8UnhandledInterruptVector
-                0x0000000000800979        0x1 main.o
+                0x0000000000800b71        0x1 main.o
 
 .bss.sg_u8Reason
-                0x000000000080097a        0x1
+                0x0000000000800b72        0x1
  .bss.sg_u8Reason
-                0x000000000080097a        0x1 main.o
+                0x0000000000800b72        0x1 main.o
 
 .bss.sg_u8ControllerStatusMsgCount
-                0x000000000080097b        0x1
+                0x0000000000800b73        0x1
  .bss.sg_u8ControllerStatusMsgCount
-                0x000000000080097b        0x1 main.o
+                0x0000000000800b73        0x1 main.o
 
 .bss.sg_u8CellReports
-                0x000000000080097c        0x1
+                0x0000000000800b74        0x1
  .bss.sg_u8CellReports
-                0x000000000080097c        0x1 main.o
+                0x0000000000800b74        0x1 main.o
 
 .bss.sg_u16BytesReceived
-                0x0000000000800966        0x2
+                0x0000000000800b5e        0x2
  .bss.sg_u16BytesReceived
-                0x0000000000800966        0x2 main.o
+                0x0000000000800b5e        0x2 main.o
 
 .bss.sg_u8CellBufferTemp
-                0x0000000000800950        0x4
+                0x0000000000800b48        0x4
  .bss.sg_u8CellBufferTemp
-                0x0000000000800950        0x4 main.o
+                0x0000000000800b48        0x4 main.o
 
 .bss.sg_u8CellBufferRX
-                0x000000000080097d        0x1
+                0x0000000000800b75        0x1
  .bss.sg_u8CellBufferRX
-                0x000000000080097d        0x1 main.o
+                0x0000000000800b75        0x1 main.o
 
 .bss.sg_u8CellIndex
-                0x000000000080097e        0x1
+                0x0000000000800b76        0x1
  .bss.sg_u8CellIndex
-                0x000000000080097e        0x1 main.o
+                0x0000000000800b76        0x1 main.o
 
 .bss.sg_u8TicksSinceLastPackControllerMessage
-                0x000000000080097f        0x1
+                0x0000000000800b77        0x1
  .bss.sg_u8TicksSinceLastPackControllerMessage
-                0x000000000080097f        0x1 main.o
+                0x0000000000800b77        0x1 main.o
 
 .bss.sg_u8CellStringPowerTimer
-                0x0000000000800980        0x1
+                0x0000000000800b78        0x1
  .bss.sg_u8CellStringPowerTimer
-                0x0000000000800980        0x1 main.o
+                0x0000000000800b78        0x1 main.o
 
 .bss.sg_bFrameStart
-                0x0000000000800981        0x1
+                0x0000000000800b79        0x1
  .bss.sg_bFrameStart
-                0x0000000000800981        0x1 main.o
+                0x0000000000800b79        0x1 main.o
 
 .bss.sg_u8CellFrameTimer
-                0x0000000000800982        0x1
+                0x0000000000800b7a        0x1
  .bss.sg_u8CellFrameTimer
-                0x0000000000800982        0x1 main.o
+                0x0000000000800b7a        0x1 main.o
 
 .bss.sg_bIgnoreStatusRequests
-                0x0000000000800983        0x1
+                0x0000000000800b7b        0x1
  .bss.sg_bIgnoreStatusRequests
-                0x0000000000800983        0x1 main.o
+                0x0000000000800b7b        0x1 main.o
 
 .bss.sg_u8AnnouncementDelayTicks
-                0x0000000000800984        0x1
+                0x0000000000800b7c        0x1
  .bss.sg_u8AnnouncementDelayTicks
-                0x0000000000800984        0x1 main.o
+                0x0000000000800b7c        0x1 main.o
 
 .bss.sg_bAnnouncementPending
-                0x0000000000800985        0x1
+                0x0000000000800b7d        0x1
  .bss.sg_bAnnouncementPending
-                0x0000000000800985        0x1 main.o
+                0x0000000000800b7d        0x1 main.o
 
 .bss.sg_u8CurrentBufferIndex
-                0x0000000000800986        0x1
+                0x0000000000800b7e        0x1
  .bss.sg_u8CurrentBufferIndex
-                0x0000000000800986        0x1 main.o
+                0x0000000000800b7e        0x1 main.o
 
 .bss.sg_sCurrenBuffer
-                0x000000000080091d       0x10
+                0x0000000000800b15       0x10
  .bss.sg_sCurrenBuffer
-                0x000000000080091d       0x10 main.o
+                0x0000000000800b15       0x10 main.o
 
 .bss.sg_u64Time
-                0x0000000000800945        0x8
+                0x0000000000800b3d        0x8
  .bss.sg_u64Time
-                0x0000000000800945        0x8 rtc_mcp7940n.o
+                0x0000000000800b3d        0x8 rtc_mcp7940n.o
 
-.bss.sg_u8CSD   0x000000000080092d       0x10
- .bss.sg_u8CSD  0x000000000080092d       0x10 SD.o
+.bss.sg_u8CSD   0x0000000000800b25       0x10
+ .bss.sg_u8CSD  0x0000000000800b25       0x10 SD.o
 
 .bss.sg_u16BlockSize
-                0x0000000000800968        0x2
+                0x0000000000800b60        0x2
  .bss.sg_u16BlockSize
-                0x0000000000800968        0x2 SD.o
+                0x0000000000800b60        0x2 SD.o
 
 .bss.sg_u32SDSectorCount
-                0x0000000000800954        0x4
+                0x0000000000800b4c        0x4
  .bss.sg_u32SDSectorCount
-                0x0000000000800954        0x4 SD.o
+                0x0000000000800b4c        0x4 SD.o
 
 .bss.frameBuffer
-                0x000000000080032c      0x400
+                0x0000000000800524      0x400
  .bss.frameBuffer
-                0x000000000080032c      0x400 STORE.o
+                0x0000000000800524      0x400 STORE.o
 
 .bss.currentSector
-                0x0000000000800958        0x4
+                0x0000000000800b50        0x4
  .bss.currentSector
-                0x0000000000800958        0x4 STORE.o
+                0x0000000000800b50        0x4 STORE.o
 
-.bss.gState     0x000000000080072c      0x1d8
- .bss.gState    0x000000000080072c      0x1d8 STORE.o
+.bss.gState     0x0000000000800924      0x1d8
+ .bss.gState    0x0000000000800924      0x1d8 STORE.o
 
-.bss.sg_bState  0x0000000000800987        0x1
+.bss.sg_bState  0x0000000000800b7f        0x1
  .bss.sg_bState
-                0x0000000000800987        0x1 vUART.o
+                0x0000000000800b7f        0x1 vUART.o
 
 .bss.sg_u8SendData
-                0x000000000080096a        0x2
+                0x0000000000800b62        0x2
  .bss.sg_u8SendData
-                0x000000000080096a        0x2 vUART.o
+                0x0000000000800b62        0x2 vUART.o
 
 .bss.sg_u8SendIndex
-                0x0000000000800988        0x1
+                0x0000000000800b80        0x1
  .bss.sg_u8SendIndex
-                0x0000000000800988        0x1 vUART.o
+                0x0000000000800b80        0x1 vUART.o
 
 .bss.sg_bMCTxNextBit
-                0x0000000000800989        0x1
+                0x0000000000800b81        0x1
  .bss.sg_bMCTxNextBit
-                0x0000000000800989        0x1 vUART.o
+                0x0000000000800b81        0x1 vUART.o
 
 .bss.sg_bCellReportsReuested
-                0x000000000080098a        0x1
+                0x0000000000800b82        0x1
  .bss.sg_bCellReportsReuested
-                0x000000000080098a        0x1 vUART.o
+                0x0000000000800b82        0x1 vUART.o
 
 .bss.sg_etxState
-                0x000000000080098b        0x1
+                0x0000000000800b83        0x1
  .bss.sg_etxState
-                0x000000000080098b        0x1 vUART.o
+                0x0000000000800b83        0x1 vUART.o
 
 .bss.sg_btxMoreAvailable
-                0x000000000080098c        0x1
+                0x0000000000800b84        0x1
  .bss.sg_btxMoreAvailable
-                0x000000000080098c        0x1 vUART.o
+                0x0000000000800b84        0x1 vUART.o
 
 .bss.sg_u8txDataByte
-                0x000000000080098d        0x1
+                0x0000000000800b85        0x1
  .bss.sg_u8txDataByte
-                0x000000000080098d        0x1 vUART.o
+                0x0000000000800b85        0x1 vUART.o
 
 .bss.sg_u8txBitCount
-                0x000000000080098e        0x1
+                0x0000000000800b86        0x1
  .bss.sg_u8txBitCount
-                0x000000000080098e        0x1 vUART.o
+                0x0000000000800b86        0x1 vUART.o
 
 .bss.sg_bCell_mc_rxMoreData
-                0x000000000080098f        0x1
+                0x0000000000800b87        0x1
  .bss.sg_bCell_mc_rxMoreData
-                0x000000000080098f        0x1 vUART.o
+                0x0000000000800b87        0x1 vUART.o
 
 .bss.sg_bCell_mc_rxPriorState
-                0x0000000000800990        0x1
+                0x0000000000800b88        0x1
  .bss.sg_bCell_mc_rxPriorState
-                0x0000000000800990        0x1 vUART.o
+                0x0000000000800b88        0x1 vUART.o
 
 .bss.sg_eCell_mc_rxState
-                0x0000000000800991        0x1
+                0x0000000000800b89        0x1
  .bss.sg_eCell_mc_rxState
-                0x0000000000800991        0x1 vUART.o
+                0x0000000000800b89        0x1 vUART.o
 
 .bss.sg_u8rxDataByte
-                0x0000000000800992        0x1
+                0x0000000000800b8a        0x1
  .bss.sg_u8rxDataByte
-                0x0000000000800992        0x1 vUART.o
+                0x0000000000800b8a        0x1 vUART.o
 
 .bss.sg_u8Cell_mc_rxBitCount
-                0x0000000000800993        0x1
+                0x0000000000800b8b        0x1
  .bss.sg_u8Cell_mc_rxBitCount
-                0x0000000000800993        0x1 vUART.o
+                0x0000000000800b8b        0x1 vUART.o
 
-.bss.tm.1240    0x0000000000800904       0x19
- .bss.tm.1240   0x0000000000800904       0x19 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime.o)
+.bss.tm.1240    0x0000000000800afc       0x19
+ .bss.tm.1240   0x0000000000800afc       0x19 c:/program files/microchip/xc8/v2.36/avr/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5/memx-const\libc.a(gmtime.o)
 
 .progmemx.data  0x00000000000000da      0x1a1
  .progmemx.data
