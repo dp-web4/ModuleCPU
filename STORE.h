@@ -97,9 +97,6 @@ typedef struct __attribute__((aligned(4))) {
 	uint16_t nstrings;              // Number of string readings that can fit in buffer
 	uint16_t currentIndex;          // Current position in circular buffer
 	uint16_t readingCount;          // Number of valid readings in buffer
-
-	// Temporary compatibility field - will be replaced with dynamic access to cellBuffer
-	CellData StringData[ MAX_CELLS ];
 } FrameMetadata;
 
 // Frame data structure - MUST BE 4-BYTE ALIGNED FOR 32-BIT XFERS
@@ -107,6 +104,16 @@ typedef struct __attribute__((aligned(4))) {
 	FrameMetadata m;  // All metadata fields
 	uint8_t c[1024 - sizeof(FrameMetadata)];  // Flexible buffer for cell data
 } FrameData;
+
+// Helper functions for accessing cell data in the buffer
+// Get pointer to the current string reading in buffer (for now, just use start of buffer)
+static inline CellData* GetStringData(FrameData* frame) {
+	return (CellData*)(frame->c);
+}
+
+static inline volatile CellData* GetStringDataVolatile(volatile FrameData* frame) {
+	return (volatile CellData*)(frame->c);
+}
 
 // Define the desired frame size to be exactly 2 sectors (1024 bytes)
 #define FRAME_SIZE_TARGET 1024

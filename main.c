@@ -1365,7 +1365,8 @@ void vUARTRXData( uint8_t u8rxDataByte )
 		{
 			// 32bit copy for speed - inside the ISR - copied atomically
 			// ASSUMES 4-BYTE ALIGNMENT - CHECK!
-			*(uint32_t*)&(sg_sFrame.m.StringData[sg_u8CellIndex]) = *((uint32_t*)sg_u8CellBufferTemp);
+			volatile CellData* stringData = GetStringDataVolatile(&sg_sFrame);
+			*(uint32_t*)&(stringData[sg_u8CellIndex]) = *((uint32_t*)sg_u8CellBufferTemp);
 		
 			*((uint32_t*)sg_u8CellBufferTemp) = 0;  // zero out all 32 bits to avoid stale data (?)
 
@@ -1895,10 +1896,10 @@ if(0)
 		// Use the last complete frame count for stable data
 		uint8_t cellsReceived = sg_sFrame.m.sg_u8LastCompleteCellCount;
 
-		// Map the requested cell ID to actual position in StringData
+		// Map the requested cell ID to actual position in cell buffer
 		// The cells report in reverse order through VUART:
-		// - Last functional cell (cellsReceived-1) is at StringData[0]
-		// - First cell (Cell 0) is at StringData[cellsReceived-1]
+		// - Last functional cell (cellsReceived-1) is at buffer[0]
+		// - First cell (Cell 0) is at buffer[cellsReceived-1]
 		// Mapping: actualIndex = (cellsReceived - 1) - requestedCellId
 
 		if (requestedCellId < cellsReceived && cellsReceived > 0)
@@ -1909,8 +1910,9 @@ if(0)
 			if (actualIndex < MAX_CELLS)
 			{
 				// Get raw values from StringData using mapped index
-				uint16_t u16RawVoltage = sg_sFrame.m.StringData[actualIndex].voltage;
-				int16_t s16RawTemp = sg_sFrame.m.StringData[actualIndex].temperature;
+				volatile CellData* stringData = GetStringDataVolatile(&sg_sFrame);
+				uint16_t u16RawVoltage = stringData[actualIndex].voltage;
+				int16_t s16RawTemp = stringData[actualIndex].temperature;
 
 				// Convert voltage to millivolts using CellDataConvertVoltage
 				if (!CellDataConvertVoltage(u16RawVoltage, &u16Voltage))
@@ -2115,8 +2117,9 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 
 		for (uint8_t u8CellIndex = 0; u8CellIndex < sg_sFrame.m.sg_u8CellCPUCount; u8CellIndex++)  // process however many cells we received
 		{
-		uint16_t u16Voltage = sg_sFrame.m.StringData[u8CellIndex].voltage;
-		int16_t s16Temperature = sg_sFrame.m.StringData[u8CellIndex].temperature;
+		volatile CellData* stringData = GetStringDataVolatile(&sg_sFrame);
+		uint16_t u16Voltage = stringData[u8CellIndex].voltage;
+		int16_t s16Temperature = stringData[u8CellIndex].temperature;
 		
 		// Bits 0-3  - 16ths of a degree C
 		// Bits 4-11 - Whole degrees C
@@ -2150,7 +2153,7 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 		}
 
 		// Is it discharging?
-		if (sg_sFrame.m.StringData[u8CellIndex].voltage & MSG_CELL_DISCHARGE_ACTIVE)
+		if (stringData[u8CellIndex].voltage & MSG_CELL_DISCHARGE_ACTIVE)
 		{
 			// update the flag
 			sg_sFrame.m.bDischargeOn = true;
@@ -2233,9 +2236,9 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 		}
 		else  // do only if partial init, in full init the memset takes care of all this
 		{
-			// Don't clear StringData - it should persist across frames
+			// Don't clear cell data buffer - it should persist across frames
 			// This contains the last received cell data and is needed for MODULE_DETAIL responses
-			// memset(&sg_sFrame.m.StringData,0,sizeof(sg_sFrame.m.StringData)); // REMOVED - don't clear cell data
+			// Cell data now stored in sg_sFrame.c buffer
 			sg_sFrame.m.bDischargeOn = false;
 			sg_sFrame.m.sg_u16CellCPUI2CErrors = 0;
 			sg_sFrame.m.sg_u8CellFirstI2CError = 0;
@@ -2610,7 +2613,7 @@ int main(void)
 					{
 						
 		#ifdef FAKE_CELL_DATA   // fake it
-						uint8_t *pu8Dest = sg_sFrame.m.StringData;
+						uint8_t *pu8Dest = (uint8_t*)GetStringDataVolatile(&sg_sFrame);
 						const uint8_t *pu8Src = (const uint8_t *) sg_u16FakeCellData;;
 						uint16_t u16Count = sizeof(sg_u16FakeCellData);
 
