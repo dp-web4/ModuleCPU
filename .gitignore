@@ -1,4 +1,41 @@
 sync.ffs_db
 *.ffs_db
-sync.ffs_db
-*.ffs_db
+
+# Build directories
+Debug/
+Release/
+
+# Keep the executables
+!Debug/*.elf
+!Debug/*.hex
+!Release/*.elf
+!Release/*.hex
+
+# Object files
+*.o
+*.obj
+
+# Dependency files
+*.d
+
+# Map files
+*.map
+
+# Listing files
+*.lss
+*.lst
+
+# EEPROM files
+*.eep
+
+# Atmel Studio files
+*.atsuo
+*.componentinfo.xml
+
+# Backup files
+*.bak
+*~
+*.swp
+
+# Memory usage file (regenerated on each build)
+memoryfile.xml
