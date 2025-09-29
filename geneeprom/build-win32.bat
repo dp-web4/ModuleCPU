@@ -1,0 +1,1 @@
+cl geneeprom.c cmdline.c shell32.lib

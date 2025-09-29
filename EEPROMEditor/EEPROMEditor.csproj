@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>eeprom.ico</ApplicationIcon>
+    <AssemblyName>EEPROMEditor</AssemblyName>
+    <RootNamespace>EEPROMEditor</RootNamespace>
+  </PropertyGroup>
+
+</Project>
