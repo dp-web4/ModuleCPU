@@ -155,6 +155,12 @@
     <Compile Include="EEPROM.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="FRAMECOUNTER.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="FRAMECOUNTER.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="I2c.c">
       <SubType>compile</SubType>
     </Compile>

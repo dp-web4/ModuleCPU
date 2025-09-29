@@ -29,6 +29,7 @@
 //#include "storage.h"
 //#include "File.h"
 #include "EEPROM.h"
+#include "FRAMECOUNTER.h"
 #include "SD.h"
 
 // watchdog stuff
@@ -258,6 +259,7 @@ volatile static uint8_t __attribute__((section(".noinit"))) sg_u8SequentailCellC
 // SD card status
 
 static volatile bool __attribute__((section(".noinit"))) sg_bSDCardReady;
+static volatile bool __attribute__((section(".noinit"))) sg_bSDWriteEnabled;  // Flag to control SD writes based on state
 
 typedef enum
 {
@@ -1051,11 +1053,47 @@ static void ModuleControllerStateHandle( void )
 			}
 		}
 
-		// Record the new state	
+		// Handle state transition tasks
+		if (sg_eModuleControllerStateCurrent == EMODSTATE_OFF && eNext != EMODSTATE_OFF)
+		{
+			// Transitioning FROM OFF to another state
+			TurnOnTask();
+		}
+		else if (sg_eModuleControllerStateCurrent != EMODSTATE_OFF && eNext == EMODSTATE_OFF)
+		{
+			// Transitioning TO OFF from another state
+			TurnOffTask();
+		}
+
+		// Record the new state
 		sg_eModuleControllerStateCurrent = eNext;  //we are now in the new state
 		SendModuleControllerStatus();
 	}
 
+}
+
+// Called when transitioning FROM OFF state to any other state
+void TurnOnTask(void)
+{
+	// Enable SD card writes when module turns on
+	sg_bSDWriteEnabled = true;
+
+	// Add other turn-on tasks here as needed
+	// - Initialize subsystems
+	// - Start timers
+	// - Enable features
+}
+
+// Called when transitioning TO OFF state from any other state
+void TurnOffTask(void)
+{
+	// Disable SD card writes when module turns off
+	sg_bSDWriteEnabled = false;
+
+	// Add other turn-off tasks here as needed
+	// - Flush buffers
+	// - Save state
+	// - Disable features
 }
 
 // Checks for 5V loss
@@ -2246,14 +2284,15 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 		if (sg_sFrame.m.readingCount < sg_sFrame.m.nstrings) {
 			sg_sFrame.m.readingCount++;
 		}
-
-		// Increment frame number for this reading (complete or partial)
-		sg_sFrame.m.frameNumber++;
 	}
 
-	// Write the cell data out to file
-	if ((sg_bSDCardReady) && (EMODSTATE_OFF != sg_eModuleControllerStateCurrent))
+	// Write the cell data out to file (only if SD writes are enabled)
+	if ((sg_bSDCardReady) && sg_bSDWriteEnabled)
 	{
+		// Increment frame counter and update in frame
+		FrameCounter_Increment();
+		sg_sFrame.m.frameCounter = FrameCounter_Get();
+
 		sg_bSDCardReady = STORE_WriteFrame(&sg_sFrame);
 	}
 
@@ -2275,6 +2314,10 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 			sg_sFrame.m.sg_u8CellCPUCountFewest = 0xff;
 			sg_sFrame.m.sg_u8CellCPUCountMost = 0;  // Explicitly init to 0 (should already be 0 from memset, but being explicit)
 			CellCountExpectedSet(EEPROMRead(EEPROM_EXPECTED_CELL_COUNT));
+
+			// Initialize frame counter from EEPROM
+			FrameCounter_Init();
+			sg_sFrame.m.frameCounter = FrameCounter_Get();
 		}
 		else  // do only if partial init, in full init the memset takes care of all this
 		{
@@ -2386,11 +2429,13 @@ int main(void)
 		TimerInit();
 		vUARTInit();
 		ADCInit();
-	
+
 #ifndef STATE_CYCLE		// don't attempt SD when cycling
 		sg_bSDCardReady = STORE_Init();
+		sg_bSDWriteEnabled = false;  // Start with SD writes disabled (module starts in OFF state)
 #else
-		sg_bSDCardReady = false;  
+		sg_bSDCardReady = false;
+		sg_bSDWriteEnabled = false;
 		sg_eStateCycle = EMODSTATE_OFF;
 		sg_u8StateCounter = 0;
 #endif

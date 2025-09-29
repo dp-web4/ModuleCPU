@@ -97,9 +97,9 @@ typedef struct __attribute__((aligned(4))) {
 	SADCReading ADCReadings[ EADCTYPE_COUNT ];
 
 // New circular buffer management fields
-	uint32_t frameNumber;           // Incremental frame counter (persisted in EEPROM)
+	uint32_t frameCounter;          // Persistent frame counter (persisted in EEPROM with wear leveling)
 	uint16_t nstrings;              // Number of string readings that can fit in buffer
-	uint16_t currentIndex;          // Current position in circular buffer
+	uint16_t currentIndex;          // Current position in circular buffer (0 to nstrings-1)
 	uint16_t readingCount;          // Number of valid readings in buffer
 } FrameMetadata;
 
