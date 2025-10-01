@@ -86,27 +86,47 @@ namespace EEPROMEditor
             {
                 Text = "No file loaded",
                 Location = new Point(10, 35),
-                Size = new Size(700, 20),
+                Size = new Size(860, 20),
                 BorderStyle = BorderStyle.Fixed3D
             };
             this.Controls.Add(lblFileName);
 
-            // Modified indicator
+            // Buttons right below filename
+            var btnRefresh = new Button
+            {
+                Text = "Refresh View",
+                Location = new Point(10, 60),
+                Size = new Size(120, 30)
+            };
+            btnRefresh.Click += RefreshView_Click;
+            this.Controls.Add(btnRefresh);
+
+            var btnApply = new Button
+            {
+                Text = "Apply Changes",
+                Location = new Point(140, 60),
+                Size = new Size(120, 30)
+            };
+            btnApply.Click += ApplyChanges_Click;
+            this.Controls.Add(btnApply);
+
+            // Modified indicator to the right of buttons
             lblModified = new Label
             {
                 Text = "",
-                Location = new Point(720, 35),
-                Size = new Size(150, 20),
+                Location = new Point(270, 60),
+                Size = new Size(600, 30),
                 ForeColor = Color.Red,
-                Font = new Font(this.Font, FontStyle.Bold)
+                Font = new Font(this.Font, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft
             };
             this.Controls.Add(lblModified);
 
-            // Tab control
+            // Tab control below buttons
             tabControl = new TabControl
             {
-                Location = new Point(10, 60),
-                Size = new Size(860, 580)
+                Location = new Point(10, 95),
+                Size = new Size(860, 545)
             };
 
             // Metadata tab
@@ -125,25 +145,6 @@ namespace EEPROMEditor
             tabControl.TabPages.Add(hexTab);
 
             this.Controls.Add(tabControl);
-
-            // Buttons at bottom
-            var btnApply = new Button
-            {
-                Text = "Apply Changes",
-                Location = new Point(700, 645),
-                Size = new Size(100, 30)
-            };
-            btnApply.Click += ApplyChanges_Click;
-            this.Controls.Add(btnApply);
-
-            var btnRefresh = new Button
-            {
-                Text = "Refresh View",
-                Location = new Point(590, 645),
-                Size = new Size(100, 30)
-            };
-            btnRefresh.Click += RefreshView_Click;
-            this.Controls.Add(btnRefresh);
         }
 
         private void CreateMetadataControls(TabPage tab)
@@ -309,7 +310,7 @@ namespace EEPROMEditor
             dgvFrameCounters = new DataGridView
             {
                 Location = new Point(20, 60),
-                Size = new Size(800, 450),
+                Size = new Size(800, 405),  // Adjusted for new tab height
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
@@ -337,7 +338,7 @@ namespace EEPROMEditor
                        "128 positions × 4 bytes each\n" +
                        "Wear leveling: Rotates every 256 increments\n" +
                        "Endurance: ~25.9 years continuous operation at 2Hz",
-                Location = new Point(20, 520),
+                Location = new Point(20, 475),  // Adjusted for new tab height
                 Size = new Size(800, 60),
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -349,7 +350,7 @@ namespace EEPROMEditor
             txtHexView = new RichTextBox
             {
                 Location = new Point(10, 10),
-                Size = new Size(830, 550),
+                Size = new Size(830, 505),  // Adjusted for new tab height
                 Font = new Font("Consolas", 9),
                 ReadOnly = true,
                 WordWrap = false
