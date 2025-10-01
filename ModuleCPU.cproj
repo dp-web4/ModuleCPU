@@ -207,6 +207,12 @@
     <Compile Include="vUART.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="crc32.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="crc32.h">
+      <SubType>compile</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="..\" />

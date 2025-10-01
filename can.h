@@ -25,7 +25,13 @@ typedef enum
 	ECANMessageType_AllIsolate,
 	ECANMessageType_SetTime,
 	ECANMessageType_MaxState,
-	
+
+	// Frame transfer messages
+	ECANMessageType_FrameTransferRequest,  // Pack → Module: Request frame transfer
+	ECANMessageType_FrameTransferStart,    // Module → Pack: Start frame transfer
+	ECANMessageType_FrameTransferData,     // Module → Pack: Frame data segment
+	ECANMessageType_FrameTransferEnd,      // Module → Pack: End frame transfer
+
 	ECANMessageType_MAX
 } ECANMessageType;
 

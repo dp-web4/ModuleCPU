@@ -31,6 +31,7 @@
 #include "EEPROM.h"
 #include "FRAMECOUNTER.h"
 #include "SD.h"
+#include "crc32.h"
 
 // watchdog stuff
 // Uncomment to enable watchdog timer
@@ -260,6 +261,19 @@ volatile static uint8_t __attribute__((section(".noinit"))) sg_u8SequentailCellC
 
 static volatile bool __attribute__((section(".noinit"))) sg_bSDCardReady;
 static volatile bool __attribute__((section(".noinit"))) sg_bSDWriteEnabled;  // Flag to control SD writes based on state
+
+// Frame transfer state machine
+typedef enum
+{
+	FRAME_TRANSFER_IDLE,
+	FRAME_TRANSFER_SENDING_START,
+	FRAME_TRANSFER_SENDING_DATA,
+	FRAME_TRANSFER_SENDING_END,
+} FrameTransferState;
+
+static FrameTransferState sg_eFrameTransferState = FRAME_TRANSFER_IDLE;
+static uint8_t sg_u8FrameTransferSegment = 0;  // Current segment being sent (0-127)
+static volatile FrameData* sg_pFrameToTransfer = NULL;  // Pointer to frame being transferred
 
 typedef enum
 {
@@ -1206,6 +1220,46 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 		// Set time! From pack controller
 		RTCSetTime(*((uint64_t *) pu8Data));
 		return;  // done here
+	}
+
+	// Frame transfer request - handle before registration check
+	if( ECANMessageType_FrameTransferRequest == eType )
+	{
+		// Only respond if addressed to us (or broadcast)
+		if (pu8Data[0] == sg_u8ModuleRegistrationID || pu8Data[0] == 0xFF)
+		{
+			// Extract requested frame counter
+			uint32_t requestedFrame = *(uint32_t*)&pu8Data[1];
+
+			if (requestedFrame == 0xFFFFFFFF)
+			{
+				// Use current frame in RAM
+				sg_pFrameToTransfer = &sg_sFrame;
+			}
+			else
+			{
+				// TODO: Retrieve frame from SD card by frame counter
+				// For now, just use current frame
+				sg_pFrameToTransfer = &sg_sFrame;
+			}
+
+			// Initiate frame transfer
+			sg_eFrameTransferState = FRAME_TRANSFER_SENDING_START;
+			sg_u8FrameTransferSegment = 0;
+		}
+		return;  // done here
+	}
+
+	// While transferring, ignore status/cell detail requests but process state changes
+	if (sg_eFrameTransferState != FRAME_TRANSFER_IDLE)
+	{
+		if (eType == ECANMessageType_ModuleStatusRequest ||
+		    eType == ECANMessageType_ModuleCellDetailRequest)
+		{
+			// Ignore these while transferring
+			return;
+		}
+		// State change requests (MaxState, AllIsolate) already processed above
 	}
 
 	if( ECANMessageType_ModuleAnnounceRequest == eType )
@@ -2352,7 +2406,76 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 		
 		// initialize other housekeeping
 		sg_u8CurrentBufferIndex=0xff;  // this indicates the buffer is empty, to be filled with first reading
-	
+
+}
+
+// Process frame transfer state machine
+void ProcessFrameTransfer(void)
+{
+	uint8_t buffer[8];
+
+	switch (sg_eFrameTransferState)
+	{
+		case FRAME_TRANSFER_IDLE:
+			// Nothing to do
+			break;
+
+		case FRAME_TRANSFER_SENDING_START:
+			// Send start message with frame counter
+			*(uint32_t*)&buffer[0] = sg_pFrameToTransfer->m.frameCounter;
+			*(uint16_t*)&buffer[4] = 129;  // Total messages (1 start + 128 data + 1 end)
+			buffer[6] = 0;
+			buffer[7] = 0;
+
+			if (CANSendMessage(ECANMessageType_FrameTransferStart, buffer, 8))
+			{
+				sg_eFrameTransferState = FRAME_TRANSFER_SENDING_DATA;
+				sg_u8FrameTransferSegment = 0;
+			}
+			break;
+
+		case FRAME_TRANSFER_SENDING_DATA:
+			if (sg_u8FrameTransferSegment < 128)
+			{
+				// Calculate offset into frame
+				uint16_t offset = sg_u8FrameTransferSegment * 8;
+
+				// Copy 8 bytes from frame
+				uint8_t *frameBytes = (uint8_t*)sg_pFrameToTransfer;
+				memcpy(buffer, &frameBytes[offset], 8);
+
+				if (CANSendMessage(ECANMessageType_FrameTransferData, buffer, 8))
+				{
+					sg_u8FrameTransferSegment++;
+				}
+			}
+			else
+			{
+				// All data sent, move to end
+				sg_eFrameTransferState = FRAME_TRANSFER_SENDING_END;
+			}
+			break;
+
+		case FRAME_TRANSFER_SENDING_END:
+		{
+			// Calculate CRC32 of entire frame
+			uint32_t crc = CRC32_Calculate((uint8_t*)sg_pFrameToTransfer,
+			                                sizeof(FrameData));
+
+			*(uint32_t*)&buffer[0] = crc;
+			buffer[4] = 0;
+			buffer[5] = 0;
+			buffer[6] = 0;
+			buffer[7] = 0;
+
+			if (CANSendMessage(ECANMessageType_FrameTransferEnd, buffer, 8))
+			{
+				sg_eFrameTransferState = FRAME_TRANSFER_IDLE;
+				sg_pFrameToTransfer = NULL;  // Clear pointer
+			}
+			break;
+		}
+	}
 }
 
 int main(void)
@@ -2527,6 +2650,9 @@ int main(void)
 
 			// Check overall CAN health and recover from error states
 			CANCheckHealth();
+
+			// Process frame transfer if active
+			ProcessFrameTransfer();
 
 			// Clear separation of registered vs unregistered behavior
 			if (!sg_bModuleRegistered)
