@@ -37,6 +37,7 @@ typedef enum
 
 extern void CANInit( void );
 extern void CANSetRXCallback( void (*pfCallback)(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataLen) );
+extern void CANSetModuleIDFilter( uint8_t u8MOBIndex, uint8_t u8ModuleID );
 extern bool CANSendMessage( ECANMessageType eType,
 							uint8_t* pu8Data,
 							uint8_t u8DataLen );

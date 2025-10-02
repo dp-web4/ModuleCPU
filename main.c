@@ -1202,6 +1202,10 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 		sg_u8ModuleRegistrationID = 0;
 		sg_bModuleRegistered = false;
 		sg_bIgnoreStatusRequests = false;  // Reset all status flags
+
+		// Reconfigure MOB 0 back to unregistered (0xFF)
+		CANSetModuleIDFilter(CANMOB_RX_IDX, 0xFF);
+
 		ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
 		return;  // done here
 	}
@@ -1304,27 +1308,30 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 				(sg_sFrame.m.moduleUniqueId == *((uint32_t *) &pu8Data[4])) )
 			{
 				sg_u8TicksSinceLastPackControllerMessage = 0;
-				
+
 				// Assign the new registration ID
 				sg_u8ModuleRegistrationID = u8RegID;
-				
+
+				// Reconfigure MOB 0 to filter on assigned module ID
+				CANSetModuleIDFilter(CANMOB_RX_IDX, u8RegID);
+
 				// Send a status to the pack controller - this will do
 				// Status #1-#3 eventually
 				SendModuleControllerStatus();
-				
+
 				// Send hardware detail as well
 				sg_bSendHardwareDetail = true;
-				
+
 				// Indicate our module controller is registered
 				sg_bModuleRegistered = true;
-				sg_bIgnoreStatusRequests = false;  
-				
+				sg_bIgnoreStatusRequests = false;
+
 				DebugOut("RX Registration - Module ID=%02x registered successfully\r\n", u8RegID);
-				
+
 				// Cancel any pending announcement since we're now registered
 				sg_bAnnouncementPending = false;
 				sg_u8AnnouncementDelayTicks = 0;
-				
+
 				// And that we send a time request
 				sg_bSendTimeRequest = true;
 			}
@@ -1415,6 +1422,10 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 				sg_u8ModuleRegistrationID = 0;
 				sg_bModuleRegistered = false;
 				sg_bIgnoreStatusRequests = false;  // Reset all status flags
+
+				// Reconfigure MOB 0 back to unregistered (0xFF)
+				CANSetModuleIDFilter(CANMOB_RX_IDX, 0xFF);
+
 				ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
 			}
 		}
@@ -2693,8 +2704,11 @@ int main(void)
 // 				CANGIE &= ~(1<< ENIT);
 				sg_bModuleRegistered = false;
 				sg_bIgnoreStatusRequests = false;  // Reset all status flags
-// 				CANGIE = savedCANGIE;			
-			
+
+				// Reconfigure MOB 0 back to unregistered (0xFF)
+				CANSetModuleIDFilter(CANMOB_RX_IDX, 0xFF);
+// 				CANGIE = savedCANGIE;
+
 				sg_bSendAnnouncement = true;			// Send an announcement to hasten registration
 			
 				// Don't send statuses in case they're queued up - we've lost connection

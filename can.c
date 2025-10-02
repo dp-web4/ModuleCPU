@@ -579,14 +579,20 @@ ISR(CAN_INT_vect, ISR_BLOCK)
 	// Do NOT re-enable global interrupts - this causes race conditions!
 	
 	 uint8_t sit = CANSIT2;
-	 
+
 	 // Most common interrupts first  *claude
+	 // Check MOB 0 (module-specific RX)
 	 if(sit & (1 << CANMOB_RX_IDX)) {
 		 CANMOBInterrupt(CANMOB_RX_IDX);
 		 CANMOBSet(CANMOB_RX_IDX, &sg_sMOBGenericReceive, NULL, 0);
 	 }
-	 
-	
+
+	 // Check MOB 2 (broadcast RX)
+	 if(sit & (1 << 2)) {
+		 CANMOBInterrupt(2);
+		 CANMOBSet(2, &sg_sMOBGenericReceive, NULL, 0);
+	 }
+
 	// Check TX MOB
 	if( sit & (1 << CANMOB_TX_IDX) )
 	{
@@ -709,6 +715,49 @@ void CANSetRXCallback( void (*pfCallback)(ECANMessageType eType, uint8_t* pu8Dat
 	sg_pfRXCallback = pfCallback;
 }
 
+void CANSetModuleIDFilter(uint8_t u8MOBIndex, uint8_t u8ModuleID)
+{
+	uint8_t savedCANGIE;
+	uint32_t u32MessageID;
+
+	MBASSERT(u8MOBIndex <= 5);
+
+	// Disable CAN interrupts during MOB reconfiguration
+	savedCANGIE = CANGIE;
+	CANGIE &= ~(1 << ENIT);
+
+	// Set MOB page
+	CANPAGE = u8MOBIndex << 4;
+
+	// Temporarily disable MOB
+	CANIE2 &= ~(1 << u8MOBIndex);
+	CANCDMOB &= ~((1 << CONMOB0) | (1 << CONMOB1));
+
+	// Update extended ID filter (bits 0-7 = module ID)
+	// Keep base ID (bits 18-28) at 0x500 with 0x700 mask
+	u32MessageID = (uint32_t)u8ModuleID;
+	u32MessageID |= (((uint32_t)0x500) & 0x7ff) << 18;
+
+	CANIDT4 = u32MessageID << 3;
+	CANIDT3 = u32MessageID >> 5;
+	CANIDT2 = u32MessageID >> 13;
+	CANIDT1 = u32MessageID >> 21;
+
+	// Set mask: bits 0-7 must match exactly (0xFF), bits 18-28 use 0x700 mask
+	CANIDM4 = (1 << IDEMSK);  // Extended frame mask
+	CANIDM4 |= 0xFF << 3;     // Module ID bits 0-7 must match exactly
+	CANIDM3 = 0xFF >> 5;      // Continue module ID mask
+	CANIDM2 = 0x700 << 5;     // Base ID mask
+	CANIDM1 = 0x700 >> 3;
+
+	// Re-enable RX mode
+	CANCDMOB = 8 | (1 << CONMOB1) | (1 << IDE);  // 8 bytes, RX mode, extended frame
+	CANIE2 |= (1 << u8MOBIndex);
+
+	// Restore CAN interrupts
+	CANGIE = savedCANGIE;
+}
+
 void CANInit( void )
 {
 	// Init clock
@@ -725,9 +774,14 @@ void CANInit( void )
 	CANMOBSet( 3, &sg_sMOBDisabled, NULL, 0 );
 	CANMOBSet( 4, &sg_sMOBDisabled, NULL, 0 );
 	CANMOBSet( 5, &sg_sMOBDisabled, NULL, 0 );
-	
-	// Setup generic RX
+
+	// Setup MOB 0 for module-specific RX (unregistered = 0xFF)
 	CANMOBSet( CANMOB_RX_IDX, &sg_sMOBGenericReceive, NULL, 0 );
+	CANSetModuleIDFilter( CANMOB_RX_IDX, 0xFF );
+
+	// Setup MOB 2 for broadcast RX (always 0x00)
+	CANMOBSet( 2, &sg_sMOBGenericReceive, NULL, 0 );
+	CANSetModuleIDFilter( 2, 0x00 );
 	
 	// Enable general CAN interrupts
 	CANGIE = (1 << ENIT) | (1 << ENRX) | (1 << ENTX) | (1 << ENERR) | (1 << ENBX) | (1 << ENERG);
