@@ -1300,8 +1300,10 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 	{
 		if( 8 == u8DataLen )
 		{
-			uint8_t u8RegID = pu8Data[0];
-			
+			// Registration message contains assigned module ID - this is NOT redundant
+			// Pack controller is telling us what ID we've been assigned
+			uint8_t u8RegID = pu8Data[0];  // Assigned module ID from pack controller
+
 			// If the qualifiers match what was sent in the announcement, this is for us
 			if( (MANUFACTURE_ID == pu8Data[2]) &&
 				(PART_ID == pu8Data[3]) &&
@@ -1340,15 +1342,17 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 	}
 
 	//process module-specific messages here, require being registered
-	if (u8DataLen >= 1)  // data needs to be at least one (ID is first)
+	// Module ID filtering now done in hardware (MOB 0 filter)
+	// if (u8DataLen >= 1)  // data needs to be at least one (ID is first)
 	{
-		uint8_t u8RegID = pu8Data[0];  // ID is first byte in module-specific messages
-	
-		// First check the registration ID matches ours	and is non-zero
+		// uint8_t u8RegID = pu8Data[0];  // ID is first byte in module-specific messages - NO LONGER NEEDED
+
+		// Hardware MOB filtering ensures only messages for our ID reach here
+		// First check that we're registered
 		// Handle commands that are only valid when registered
 		// Note: For status requests, we re-check sg_bModuleRegistered in case we just got registered
-		if ((bIsRegistered || (ECANMessageType_ModuleStatusRequest == eType && sg_bModuleRegistered)) &&
-			(u8RegID == sg_u8ModuleRegistrationID))
+		if (bIsRegistered || (ECANMessageType_ModuleStatusRequest == eType && sg_bModuleRegistered))
+			// (u8RegID == sg_u8ModuleRegistrationID))  // No longer needed - MOB filtering ensures this
 		{
 			// Since this message is for us, now check the type and length
 			
