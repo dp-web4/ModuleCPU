@@ -1,43 +1,47 @@
 /***************************************************************************************************************
  * @file           : can_ids.h
- * @brief          : Modbatt CAN packet identifiers 
+ * @brief          : Modbatt CAN packet identifiers - ModuleCPU wrapper
  ***************************************************************************************************************
  *
  * Copyright (c) 2023 Modular Battery Technologies, Inc
  *
+ * This file includes the shared protocol definitions and creates PKT_ aliases for ModuleCPU compatibility
  **************************************************************************************************************/
 #ifndef INC_CAN_IDS_H_
 #define INC_CAN_IDS_H_
 
-// CAN Packet IDs
+// Include shared protocol definitions
+#include "../Pack-Controller-EEPROM/protocols/CAN_ID_ALL.h"
+
+// Create PKT_ aliases for ModuleCPU code compatibility
 // Module Controller to Pack Controller
-#define PKT_MODULE_ANNOUNCEMENT     0x500
-#define PKT_MODULE_HARDWARE			0x501
-#define PKT_MODULE_STATUS1          0x502
-#define PKT_MODULE_STATUS2			0x503
-#define PKT_MODULE_STATUS3			0x504
-#define PKT_MODULE_CELL_DETAIL		0x505
-#define PKT_MODULE_REQUEST_TIME		0x506
-#define PKT_MODULE_CELL_COMM_STAT1	0x507
-#define PKT_MODULE_CELL_COMM_STAT2	0x508
+#define PKT_MODULE_ANNOUNCEMENT     ID_MODULE_ANNOUNCEMENT
+#define PKT_MODULE_HARDWARE         ID_MODULE_HARDWARE
+#define PKT_MODULE_STATUS1          ID_MODULE_STATUS_1
+#define PKT_MODULE_STATUS2          ID_MODULE_STATUS_2
+#define PKT_MODULE_STATUS3          ID_MODULE_STATUS_3
+#define PKT_MODULE_CELL_DETAIL      ID_MODULE_DETAIL
+#define PKT_MODULE_REQUEST_TIME     ID_MODULE_TIME_REQUEST
+#define PKT_MODULE_CELL_COMM_STAT1  ID_MODULE_CELL_COMM_STATUS1
+#define PKT_MODULE_CELL_COMM_STAT2  ID_MODULE_CELL_COMM_STATUS2
 
 // Pack Controller to Module Controller
-#define PKT_MODULE_REGISTRATION     0x510
-#define PKT_MODULE_HARDWARE_REQUEST	0x511
-#define PKT_MODULE_STATUS_REQUEST   0x512
-#define PKT_MODULE_STATE_CHANGE     0x514
-#define PKT_MODULE_DETAIL_REQUEST   0x515
-#define PKT_MODULE_SET_TIME			0x516
-#define PKT_MODULE_MAX_STATE		0x517
-#define PKT_MODULE_DEREGISTER       0x518
-#define PKT_MODULE_ANNOUNCE_REQUEST 0x51D
-#define PKT_MODULE_ALL_DEREGISTER   0x51E
-#define PKT_MODULE_ALL_ISOLATE      0x51F
+#define PKT_MODULE_REGISTRATION     ID_MODULE_REGISTRATION
+#define PKT_MODULE_HARDWARE_REQUEST ID_MODULE_HARDWARE_REQUEST
+#define PKT_MODULE_STATUS_REQUEST   ID_MODULE_STATUS_REQUEST
+#define PKT_MODULE_STATE_CHANGE     ID_MODULE_STATE_CHANGE
+#define PKT_MODULE_DETAIL_REQUEST   ID_MODULE_DETAIL_REQUEST
+#define PKT_MODULE_SET_TIME         ID_MODULE_SET_TIME
+#define PKT_MODULE_MAX_STATE        ID_MODULE_MAX_STATE
+#define PKT_MODULE_DEREGISTER       ID_MODULE_DEREGISTER
+#define PKT_MODULE_ANNOUNCE_REQUEST ID_MODULE_ANNOUNCE_REQUEST
+#define PKT_MODULE_ALL_DEREGISTER   ID_MODULE_ALL_DEREGISTER
+#define PKT_MODULE_ALL_ISOLATE      ID_MODULE_ALL_ISOLATE
 
 // Frame transfer (bidirectional)
-#define PKT_FRAME_TRANSFER_REQUEST  0x520  // Pack → Module: Request frame transfer
-#define PKT_FRAME_TRANSFER_START    0x521  // Module → Pack: Start frame transfer
-#define PKT_FRAME_TRANSFER_DATA     0x522  // Module → Pack: Frame data segment
-#define PKT_FRAME_TRANSFER_END      0x523  // Module → Pack: End frame transfer
+#define PKT_FRAME_TRANSFER_REQUEST  ID_FRAME_TRANSFER_REQUEST
+#define PKT_FRAME_TRANSFER_START    ID_FRAME_TRANSFER_START
+#define PKT_FRAME_TRANSFER_DATA     ID_FRAME_TRANSFER_DATA
+#define PKT_FRAME_TRANSFER_END      ID_FRAME_TRANSFER_END
 
 #endif /* INC_CAN_IDS_H_ */
