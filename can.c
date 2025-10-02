@@ -170,6 +170,37 @@ static const SMOBDef sg_sMOBModuleRequestTime =
 	false,
 };
 
+// Frame transfer MOBs
+static const SMOBDef sg_sMOBFrameTransferStart =
+{
+	CAN_TXONLY,
+	false,
+	PKT_FRAME_TRANSFER_START,
+	0x7ff,
+	false,
+	false,
+};
+
+static const SMOBDef sg_sMOBFrameTransferData =
+{
+	CAN_TXONLY,
+	false,
+	PKT_FRAME_TRANSFER_DATA,
+	0x7ff,
+	false,
+	false,
+};
+
+static const SMOBDef sg_sMOBFrameTransferEnd =
+{
+	CAN_TXONLY,
+	false,
+	PKT_FRAME_TRANSFER_END,
+	0x7ff,
+	false,
+	false,
+};
+
 
 typedef struct  
 {
@@ -189,7 +220,8 @@ static const SCANCmdReg sg_sRXCommandList[] =
 	{PKT_MODULE_ALL_DEREGISTER, ECANMessageType_AllDeRegister},
 	{PKT_MODULE_ALL_ISOLATE,	ECANMessageType_AllIsolate},
 	{PKT_MODULE_SET_TIME,		ECANMessageType_SetTime},
-	{PKT_MODULE_MAX_STATE,		ECANMessageType_MaxState}
+	{PKT_MODULE_MAX_STATE,		ECANMessageType_MaxState},
+	{PKT_FRAME_TRANSFER_REQUEST, ECANMessageType_FrameTransferRequest}
 };
 
 static ECANMessageType CANLookupCommand( uint16_t u16ID )
@@ -329,6 +361,18 @@ static void CANSendMessageInternal( ECANMessageType eType,
 	else if( ECANMessageType_ModuleRequestTime == eType )
 	{
 		psDef = &sg_sMOBModuleRequestTime;
+	}
+	else if( ECANMessageType_FrameTransferStart == eType )
+	{
+		psDef = &sg_sMOBFrameTransferStart;
+	}
+	else if( ECANMessageType_FrameTransferData == eType )
+	{
+		psDef = &sg_sMOBFrameTransferData;
+	}
+	else if( ECANMessageType_FrameTransferEnd == eType )
+	{
+		psDef = &sg_sMOBFrameTransferEnd;
 	}
 	else
 	{
