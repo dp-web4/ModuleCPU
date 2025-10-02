@@ -1422,7 +1422,7 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 			if( ECANMessageType_ModuleDeRegister == eType )
 			{
 				// Individual deregister for this module
-				DebugOut("RX Individual De-Register - module ID=%02x deregistered\r\n", u8RegID);
+				// DebugOut("RX Individual De-Register - module ID=%02x deregistered\r\n", u8RegID);
 				sg_u8ModuleRegistrationID = 0;
 				sg_bModuleRegistered = false;
 				sg_bIgnoreStatusRequests = false;  // Reset all status flags
