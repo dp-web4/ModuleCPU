@@ -1,6 +1,10 @@
 #ifndef _CAN_H_
 #define _CAN_H_
 
+// MOB indices
+#define CANMOB_RX_IDX			(0)
+#define CANMOB_TX_IDX			(1)
+
 typedef enum
 {
 	// Module controller messages
