@@ -1229,28 +1229,26 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 	// Frame transfer request - handle before registration check
 	if( ECANMessageType_FrameTransferRequest == eType )
 	{
-		// Only respond if addressed to us (or broadcast)
-		if (pu8Data[0] == sg_u8ModuleRegistrationID || pu8Data[0] == 0xFF)
+		// Hardware MOB filtering ensures this is for us - no need to check module ID
+		// Extract requested frame counter (now in bytes 0-3, moduleId was redundant)
+		uint32_t requestedFrame = *(uint32_t*)&pu8Data[0];
+
+		if (requestedFrame == 0xFFFFFFFF)
 		{
-			// Extract requested frame counter
-			uint32_t requestedFrame = *(uint32_t*)&pu8Data[1];
-
-			if (requestedFrame == 0xFFFFFFFF)
-			{
-				// Use current frame in RAM
-				sg_pFrameToTransfer = &sg_sFrame;
-			}
-			else
-			{
-				// TODO: Retrieve frame from SD card by frame counter
-				// For now, just use current frame
-				sg_pFrameToTransfer = &sg_sFrame;
-			}
-
-			// Initiate frame transfer
-			sg_eFrameTransferState = FRAME_TRANSFER_SENDING_START;
-			sg_u8FrameTransferSegment = 0;
+			// Use current frame in RAM
+			sg_pFrameToTransfer = &sg_sFrame;
 		}
+		else
+		{
+			// TODO: Retrieve frame from SD card by frame counter
+			// For now, just use current frame
+			sg_pFrameToTransfer = &sg_sFrame;
+		}
+
+		// Initiate frame transfer
+		sg_eFrameTransferState = FRAME_TRANSFER_SENDING_START;
+		sg_u8FrameTransferSegment = 0;
+
 		return;  // done here
 	}
 
