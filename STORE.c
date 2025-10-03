@@ -116,6 +116,10 @@ bool STORE_StartNewSession(void) {
 	return updateSessionMap();
 }
 
+uint8_t* STORE_GetFrameBuffer(void) {
+	return frameBuffer;
+}
+
 bool STORE_EndSession(void) {
 	// Ensure we end on a frame boundary
 	if(currentSector % SECTORS_PER_FRAME != 0) {

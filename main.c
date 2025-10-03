@@ -1233,16 +1233,18 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 		// Extract requested frame counter (now in bytes 0-3, moduleId was redundant)
 		uint32_t requestedFrame = *(uint32_t*)&pu8Data[0];
 
+		// Transfer from STORE frameBuffer (which contains last written frame)
+		// This avoids race conditions with cell reading updating sg_sFrame
 		if (requestedFrame == 0xFFFFFFFF)
 		{
-			// Use current frame in RAM
-			sg_pFrameToTransfer = &sg_sFrame;
+			// Use frame buffer (contains most recent frame written to SD)
+			sg_pFrameToTransfer = (volatile FrameData*)STORE_GetFrameBuffer();
 		}
 		else
 		{
 			// TODO: Retrieve frame from SD card by frame counter
-			// For now, just use current frame
-			sg_pFrameToTransfer = &sg_sFrame;
+			// For now, use frame buffer
+			sg_pFrameToTransfer = (volatile FrameData*)STORE_GetFrameBuffer();
 		}
 
 		// Initiate frame transfer
@@ -2354,7 +2356,8 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 	}
 
 	// Write the cell data out to file (only if SD writes are enabled)
-	if ((sg_bSDCardReady) && sg_bSDWriteEnabled)
+	// Skip SD writes during frame transfer to preserve frameBuffer contents
+	if ((sg_bSDCardReady) && sg_bSDWriteEnabled && (sg_eFrameTransferState == FRAME_TRANSFER_IDLE))
 	{
 		// Increment frame counter and update in frame
 		FrameCounter_Increment();
@@ -2457,7 +2460,8 @@ void ProcessFrameTransfer(void)
 				uint8_t *frameBytes = (uint8_t*)sg_pFrameToTransfer;
 				memcpy(buffer, &frameBytes[offset], 8);
 
-				if (CANSendMessage(ECANMessageType_FrameTransferData, buffer, 8))
+				// Send with sequence number in extended ID bits 8-17
+				if (CANSendMessageWithSeq(ECANMessageType_FrameTransferData, buffer, 8, sg_u8FrameTransferSegment))
 				{
 					sg_u8FrameTransferSegment++;
 				}

@@ -167,6 +167,7 @@ bool STORE_StartNewSession(void);
 bool STORE_EndSession(void);
 bool STORE_GetSessionCount(uint32_t* count);
 bool STORE_GetSessionInfo(uint32_t sessionIndex, uint32_t* startSector, uint32_t* sectorCount);
+uint8_t* STORE_GetFrameBuffer(void);  // Get pointer to internal frame buffer for CAN frame transfer
 
 
 #endif

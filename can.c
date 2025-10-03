@@ -241,28 +241,29 @@ static ECANMessageType CANLookupCommand( uint16_t u16ID )
 	return( ECANMessageType_MAX );
 }
 
-static void CANMOBSet( uint8_t u8MOBIndex,
+static void CANMOBSetWithSeq( uint8_t u8MOBIndex,
 					   const SMOBDef* psDef,
 					   uint8_t* pu8Data,
-					   uint8_t u8DataLen )
+					   uint8_t u8DataLen,
+					   uint16_t u16SeqNum )
 {
 	uint8_t u8CANCDMOBValue;
 	uint32_t u32MessageID;
 	uint8_t savedCANGIE;
-	
+
 	MBASSERT( u8MOBIndex <= 5 );
 	MBASSERT( u8DataLen <= 8 );
-	
+
 	// Disable CAN interrupts during MOB configuration to prevent corruption
 	savedCANGIE = CANGIE;
 	CANGIE &= ~(1 << ENIT);
-	
+
 	// Set the MOB page, auto increment, and data index 0
 	CANPAGE = u8MOBIndex << 4;
-	
+
 	// Clear the MOB status
 	CANSTMOB = 0;
-	
+
 	// Set the MOB registers for this page
 	u8CANCDMOBValue = u8DataLen;
 	u8CANCDMOBValue |= (psDef->u8Mode << CONMOB0);
@@ -271,40 +272,42 @@ static void CANMOBSet( uint8_t u8MOBIndex,
 		u8CANCDMOBValue |= (1 << RPLV);
 	}
 	u8CANCDMOBValue |= (1 << IDE);
-	
+
 	// Extended frame address format
 	//	Bits 0-7: Pack / Module registration ID of sender (if assigned, zero otherwise)
-	//	Bits 8-17: Reserved, set to zero.
+	//	Bits 8-17: Sequence number (for frame transfer DATA messages, 0-127)
 	//	Bits 18-28: Static message ID (eg. 0x500)
-	
+
 	u32MessageID = (uint32_t)PlatformGetRegistrationID();
+	u32MessageID |= ((uint32_t)(u16SeqNum & 0x3FF)) << 8;  // Sequence in bits 8-17
 	u32MessageID |= (((uint32_t)psDef->u16ID) & 0x7ff) << 18;
-	
+
+	// Set the ID registers
 	CANIDT4 = psDef->bRTRTag?(1 << RTRTAG):0;
 	CANIDT4 |= u32MessageID << 3;
 	CANIDT3 = u32MessageID >> 5;
 	CANIDT2 = u32MessageID >> 13;
 	CANIDT1 = u32MessageID >> 21;
-	
+
 	// Setup mask for the cmd (require matching ID extention bit)
 	CANIDM4 = psDef->bRTRMask?(1 << RTRTAG):0;
 	CANIDM4 |= (1 << IDEMSK);
 	CANIDM3 = 0;
 	CANIDM2 = psDef->u16IDMask << 5;
 	CANIDM1 = psDef->u16IDMask >> 3;
-	
+
 	// Set the data into the FIFO
 	while( u8DataLen )
 	{
 		CANMSG = *pu8Data;
-		
+
 		pu8Data++;
 		u8DataLen--;
 	}
-	
+
 	// Send it now
 	CANCDMOB = u8CANCDMOBValue;
-	
+
 	// Enable (activates the MOB) or disable the MOB interrupt
 	if( psDef->u8Mode != CAN_DISABLED )
 	{
@@ -314,9 +317,18 @@ static void CANMOBSet( uint8_t u8MOBIndex,
 	{
 		CANIE2 &= (uint8_t)~(1 << u8MOBIndex);
 	}
-	
+
 	// Restore CAN interrupts
 	CANGIE = savedCANGIE;
+}
+
+static void CANMOBSet( uint8_t u8MOBIndex,
+					   const SMOBDef* psDef,
+					   uint8_t* pu8Data,
+					   uint8_t u8DataLen )
+{
+	// Call the version with sequence number = 0
+	CANMOBSetWithSeq(u8MOBIndex, psDef, pu8Data, u8DataLen, 0);
 }
 
 static void CANSendMessageInternal( ECANMessageType eType,
@@ -409,6 +421,100 @@ static void CANSendMessageInternal( ECANMessageType eType,
 		
 		// Send it now
 		CANMOBSet( CANMOB_TX_IDX, psDef, pu8Data, u8DataLen );
+	}
+}
+
+static void CANSendMessageInternalWithSeq( ECANMessageType eType,
+									uint8_t* pu8Data,
+									uint8_t u8DataLen,
+									uint16_t u16SeqNum,
+									bool bRetransmit )
+{
+	const SMOBDef* psDef = NULL;
+
+	if( ECANMessageType_ModuleAnnouncement == eType )
+	{
+		psDef = &sg_sMOBModuleAnnouncement;
+	}
+	else if( ECANMessageType_ModuleStatus1 == eType )
+	{
+		psDef = &sg_sMOBModuleStatus1;
+	}
+	else if( ECANMessageType_ModuleStatus2 == eType )
+	{
+		psDef = &sg_sMOBModuleStatus2;
+	}
+	else if( ECANMessageType_ModuleStatus3 == eType )
+	{
+		psDef = &sg_sMOBModuleStatus3;
+	}
+	else if( ECANMessageType_ModuleCellCommStat1 == eType )
+	{
+		psDef = &sg_sMOBModuleCellCommStat1;
+	}
+	else if( ECANMessageType_ModuleCellCommStat2 == eType )
+	{
+		psDef = &sg_sMOBModuleCellCommStat2;
+	}
+	else if( ECANMessageType_ModuleHardwareDetail == eType )
+	{
+		psDef = &sg_sMOBModuleHardwareDetail;
+	}
+	else if( ECANMessageType_ModuleCellDetail == eType )
+	{
+		psDef = &sg_sMOBModuleCellDetail;
+	}
+	else if( ECANMessageType_ModuleRequestTime == eType )
+	{
+		psDef = &sg_sMOBModuleRequestTime;
+	}
+	else if( ECANMessageType_FrameTransferStart == eType )
+	{
+		psDef = &sg_sMOBFrameTransferStart;
+	}
+	else if( ECANMessageType_FrameTransferData == eType )
+	{
+		psDef = &sg_sMOBFrameTransferData;
+	}
+	else if( ECANMessageType_FrameTransferEnd == eType )
+	{
+		psDef = &sg_sMOBFrameTransferEnd;
+	}
+	else
+	{
+		// Invalid message type
+		MBASSERT(0);
+	}
+
+	if(bRetransmit && sg_bInRetransmit) {
+		// Already in a retransmit, don't allow nested retries
+		return;
+	}
+	if( bRetransmit || (0 == sg_u8Busy) )
+	{
+		// Only reset timeout if not already busy, or if explicitly retransmitting
+		// Don't extend timeout on retransmits - use existing countdown
+		if (0 == sg_u8Busy)
+		{
+			sg_u8Busy = CAN_TX_TIMEOUT_TICKS;
+		}
+
+		// Save this message info for retransmit later if needed
+		if( false == bRetransmit )
+		{
+			sg_u8TransmitAttempts = 0;
+			sg_eLastTXType = eType;
+			MBASSERT(u8DataLen <= CAN_MAX_MSG_SIZE);
+			memcpy(sg_u8LastTXData, pu8Data, u8DataLen);
+			sg_u8LastTXDataLen = u8DataLen;
+		}
+		else
+		{
+			sg_u8TransmitAttempts++;
+		}
+
+		// Send it now with sequence number
+		CANMOBSetWithSeq( CANMOB_TX_IDX, psDef, pu8Data, u8DataLen, u16SeqNum );
 	}
 }
 
@@ -707,6 +813,34 @@ bool CANSendMessage( ECANMessageType eType,
 	}
 
 	CANSendMessageInternal( eType, pu8Data, u8DataLen, false );
+	return( true );
+}
+
+bool CANSendMessageWithSeq( ECANMessageType eType,
+						uint8_t* pu8Data,
+						uint8_t u8DataLen,
+						uint16_t u16SeqNum )
+{
+	// Don't transmit during bus-off recovery period
+	if (sg_u8BusOffRecoveryDelay > 0)
+	{
+		return(false);
+	}
+
+	// Don't transmit during TX backoff period (adaptive backoff for persistent errors)
+	if (sg_u8TxBackoffDelay > 0)
+	{
+		return(false);
+	}
+
+	// If we're busy, kick it back so we're cooperatively multitasking
+	// rather than spin locking
+	if (sg_u8Busy)
+	{
+		return(false);
+	}
+
+	CANSendMessageInternalWithSeq( eType, pu8Data, u8DataLen, u16SeqNum, false );
 	return( true );
 }
 

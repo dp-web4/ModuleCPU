@@ -44,12 +44,20 @@ Module-level coordination (ATmega64M1) managing:
 ## Design Philosophy
 ModuleCPU embodies "middle management" - aggregating cell data while maintaining their autonomy, and reporting to the pack level without exposing cell-level details. This mirrors Synchronism's principle of scale-specific Markov blankets.
 
+## Build Environment
+**IMPORTANT**: This project runs in WSL but uses Windows-based build tools:
+- **ModuleCPU**: Uses Atmel Studio (Windows IDE) - **cannot build from WSL**
+- **Pack-Controller-EEPROM emulator**: Uses Borland C++ Builder 6 (Windows) - **cannot build from WSL**
+- **DO NOT** attempt to run make, gcc, or other build commands from WSL
+- User must compile manually in Windows environment
+- Focus on code correctness, not attempting builds
+
 ## Development Process - CRITICAL PROTOCOL
 **IMPORTANT**: This protocol has already saved us from significant chaos. Follow it strictly:
 
 When proposing changes:
 1. **PROPOSE**: Create a PROPOSED_CHANGES.md file with analysis and options
-2. **DISCUSS**: Present to the user and discuss implications  
+2. **DISCUSS**: Present to the user and discuss implications
 3. **IMPLEMENT**: Only make changes after agreement
 
 The user emphasized (July 30, 2025): "ok cool but remember our protocol - propose the changes, discuss, THEN make them"

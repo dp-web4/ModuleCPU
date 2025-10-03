@@ -45,6 +45,10 @@ extern void CANSetModuleIDFilter( uint8_t u8MOBIndex, uint8_t u8ModuleID );
 extern bool CANSendMessage( ECANMessageType eType,
 							uint8_t* pu8Data,
 							uint8_t u8DataLen );
+extern bool CANSendMessageWithSeq( ECANMessageType eType,
+							uint8_t* pu8Data,
+							uint8_t u8DataLen,
+							uint16_t u16SeqNum );
 extern void CANPoll( void );
 extern void CANCheckTxStatus( void );
 
