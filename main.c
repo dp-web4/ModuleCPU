@@ -2383,6 +2383,13 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 			sg_sFrame.m.sg_u8CellFirstI2CError = 0xff;
 			sg_sFrame.m.sg_u8CellCPUCountFewest = 0xff;
 			sg_sFrame.m.sg_u8CellCPUCountMost = 0;  // Explicitly init to 0 (should already be 0 from memset, but being explicit)
+
+			// Initialize current fields to 0A (0x8000 = 32768)
+			// Current formula: Amps = -655.36 + raw * 0.02, so 0A = 32768
+			sg_sFrame.m.u16maxCurrent = 0x8000;
+			sg_sFrame.m.u16minCurrent = 0x8000;
+			sg_sFrame.m.u16avgCurrent = 0x8000;
+
 			CellCountExpectedSet(EEPROMRead(EEPROM_EXPECTED_CELL_COUNT));
 
 			// Initialize frame counter from EEPROM
