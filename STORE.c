@@ -4,35 +4,35 @@
 
 static GlobalState gState;
 static uint32_t currentSector;
-static uint8_t __attribute__((aligned(4))) frameBuffer[FRAME_BUFFER_SIZE];  // Enlarged to handle full frame
+static uint8_t __attribute__((aligned(4))) frameBuffer[FRAME_BUFFER_SIZE];  // Frame data for CAN transfer - DO NOT REUSE
+static uint8_t __attribute__((aligned(4))) sectorBuffer[SECTOR_SIZE];  // Temporary buffer for global state/session map operations
 
 static bool readGlobalState(void) {
-	if (!SDRead(0, frameBuffer, 1)) {
-		return false;
-	}
-	memcpy(&gState, frameBuffer, sizeof(GlobalState));
-	// TODO: Implement checksum verification
+	// Global state now tracked in EEPROM (frame counter, etc.)
+	// SD card no longer used for global state
+	// Nothing to read here - EEPROM reads happen in specific modules
 	return true;
 }
 
 static bool writeGlobalState(void) {
-	memcpy(frameBuffer, &gState, sizeof(GlobalState));
-	// TODO: Calculate and update checksum
-	return SDWrite(0, frameBuffer, 1);
+	// Global state now tracked in EEPROM (frame counter, etc.)
+	// SD card no longer used for global state
+	// TODO: Save key metrics to EEPROM here if needed
+	return true;
 }
 
 static bool updateSessionMap(void) {
 	uint32_t mapSector = gState.activeSessionMapSector;
 	uint32_t mapOffset = gState.activeSessionMapOffset;
 
-	if (!SDRead(mapSector, frameBuffer, 1)) {
+	if (!SDRead(mapSector, sectorBuffer, 1)) {
 		return false;
 	}
 
 	// Update session map
-	*(uint64_t*)(frameBuffer + mapOffset) = gState.newSessionSector;
+	*(uint64_t*)(sectorBuffer + mapOffset) = gState.newSessionSector;
 
-	if (!SDWrite(mapSector, frameBuffer, 1)) {
+	if (!SDWrite(mapSector, sectorBuffer, 1)) {
 		return false;
 	}
 
@@ -73,19 +73,15 @@ bool STORE_WriteFrame(volatile FrameData* frame) {
 	uint32_t bytesWritten = 0;
 	uint32_t currentOffset = 0;
 	uint32_t sectorsToWrite;
-	
+
 	// Verify frame size
 	if(frame->m.frameBytes > FRAME_BUFFER_SIZE) {
 		return false;
 	}
 
-	// Copy frame data to our buffer
-	memcpy(frameBuffer, (const void*)frame, frame->m.frameBytes);
-
-	// Zero out any remaining buffer space in last sector
-	if(frame->m.frameBytes < FRAME_BUFFER_SIZE) {
-		memset(frameBuffer + frame->m.frameBytes, 0, FRAME_BUFFER_SIZE - frame->m.frameBytes);
-	}
+	// Copy ENTIRE frame data to our buffer (always 1024 bytes)
+	// This ensures frameBuffer contains complete frame for CAN transfer
+	memcpy(frameBuffer, (const void*)frame, FRAME_BUFFER_SIZE);
 	
 	// Calculate how many complete sectors we need to write
 	sectorsToWrite = SECTORS_PER_FRAME;
