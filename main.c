@@ -2252,63 +2252,63 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 
 		for (uint8_t u8CellIndex = 0; u8CellIndex < sg_sFrame.m.sg_u8CellCPUCount; u8CellIndex++)  // process however many cells we received
 		{
-		volatile CellData* stringData = GetStringDataVolatile(&sg_sFrame);
-		uint16_t u16Voltage = stringData[u8CellIndex].voltage;
-		int16_t s16Temperature = stringData[u8CellIndex].temperature;
+			volatile CellData* stringData = GetStringDataVolatile(&sg_sFrame);
+			uint16_t u16Voltage = stringData[u8CellIndex].voltage;
+			int16_t s16Temperature = stringData[u8CellIndex].temperature;
 		
-		// Bits 0-3  - 16ths of a degree C
-		// Bits 4-11 - Whole degrees C
-		// Bit 12    - Temperature sign bit - 0=Positive, 1=Negative
+			// Bits 0-3  - 16ths of a degree C
+			// Bits 4-11 - Whole degrees C
+			// Bit 12    - Temperature sign bit - 0=Positive, 1=Negative
 
 
 
-		// if valid, count it
-		if (CellDataConvertTemperature(s16Temperature,NULL))  // only do validity check, don't convert since we're doing stats raw
-		{
-			if (s16Temperature & (1 << 12))
+			// if valid, count it
+			if (CellDataConvertTemperature(s16Temperature,NULL))  // only do validity check, don't convert since we're doing stats raw
 			{
-				// Sign extend/2's complement
-				s16Temperature |= 0xf000;
-			}
-			else
-			{
-				s16Temperature &= ~MSG_CELL_TEMP_I2C_OK;  // clear the i2c bit
+				if (s16Temperature & (1 << 12))
+				{
+					// Sign extend/2's complement
+					s16Temperature |= 0xf000;
+				}
+				else
+				{
+					s16Temperature &= ~MSG_CELL_TEMP_I2C_OK;  // clear the i2c bit
+				}
+
+				if (s16HighestCellTempRAW < s16Temperature)
+				{
+					s16HighestCellTempRAW = s16Temperature;
+				}
+				if (s16LowestCellTempRAW > s16Temperature)
+				{
+					s16LowestCellTempRAW = s16Temperature;
+				}
+				s32TempTotal += s16Temperature;
+				u8CellTemperatureCount++;
 			}
 
-			if (s16HighestCellTempRAW < s16Temperature)
+			// Is it discharging?
+			if (stringData[u8CellIndex].voltage & MSG_CELL_DISCHARGE_ACTIVE)
 			{
-				s16HighestCellTempRAW = s16Temperature;
-			}
-			if (s16LowestCellTempRAW > s16Temperature)
-			{
-				s16LowestCellTempRAW = s16Temperature;
-			}
-			s32TempTotal += s16Temperature;
-			u8CellTemperatureCount++;
-		}
-
-		// Is it discharging?
-		if (stringData[u8CellIndex].voltage & MSG_CELL_DISCHARGE_ACTIVE)
-		{
-			// update the flag
-			sg_sFrame.m.bDischargeOn = true;
-		}	
+				// update the flag
+				sg_sFrame.m.bDischargeOn = true;
+			}	
 		
-		// if valid, count it		
-		if (CellDataConvertVoltage(u16Voltage,&u16Voltage))  // this will check limits, scale to mV and clear unused bits
-		{
-			if (sg_sFrame.m.sg_u16HighestCellVoltage < u16Voltage)
+			// if valid, count it		
+			if (CellDataConvertVoltage(u16Voltage,&u16Voltage))  // this will check limits, scale to mV and clear unused bits
 			{
-				sg_sFrame.m.sg_u16HighestCellVoltage = u16Voltage;
+				if (sg_sFrame.m.sg_u16HighestCellVoltage < u16Voltage)
+				{
+					sg_sFrame.m.sg_u16HighestCellVoltage = u16Voltage;
+				}
+				if (sg_sFrame.m.sg_u16LowestCellVoltage > u16Voltage)
+				{
+					sg_sFrame.m.sg_u16LowestCellVoltage = u16Voltage;
+				}
+				u32CellVoltageTotalmV += u16Voltage;
+				u8CellVoltageCount++;
 			}
-			if (sg_sFrame.m.sg_u16LowestCellVoltage > u16Voltage)
-			{
-				sg_sFrame.m.sg_u16LowestCellVoltage = u16Voltage;
-			}
-			u32CellVoltageTotalmV += u16Voltage;
-			u8CellVoltageCount++;
 		}
-	}
 
 		if (u8CellVoltageCount)  // got at least some
 		{
@@ -2347,23 +2347,35 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 	// Advance circular buffer to next slot after WRITE frame
 	// This happens regardless of how many cells reported (could be partial or zero)
 	// Missing cells retain their INVALID markers
-	if (sg_sFrame.m.nstrings > 0) {
-		sg_sFrame.m.currentIndex = (sg_sFrame.m.currentIndex + 1) % sg_sFrame.m.nstrings;
-
-		if (sg_sFrame.m.readingCount < sg_sFrame.m.nstrings) {
+	if (sg_sFrame.m.nstrings > 0)
+	{
+		if (sg_sFrame.m.readingCount < sg_sFrame.m.nstrings)
+		{
 			sg_sFrame.m.readingCount++;
 		}
-	}
 
-	// Write the cell data out to file (only if SD writes are enabled)
-	// Skip SD writes during frame transfer to preserve frameBuffer contents
-	if ((sg_bSDCardReady) && sg_bSDWriteEnabled && (sg_eFrameTransferState == FRAME_TRANSFER_IDLE))
-	{
-		// Increment frame counter and update in frame
-		FrameCounter_Increment();
-		sg_sFrame.m.frameCounter = FrameCounter_Get();
+		// Check if we're about to wrap around (buffer will be full after this write)
+		// If so, write the complete frame to frameBuffer before wrapping
+		if ((sg_sFrame.m.currentIndex == sg_sFrame.m.nstrings - 1) &&
+		    (sg_sFrame.m.readingCount >= sg_sFrame.m.nstrings) &&
+		    (sg_eFrameTransferState == FRAME_TRANSFER_IDLE))
+		{
+			// STORE_WriteFrame always copies to frameBuffer, optionally writes to SD
+			bool bWriteSuccess = STORE_WriteFrame(&sg_sFrame, sg_bSDCardReady, sg_bSDWriteEnabled);
 
-		sg_bSDCardReady = STORE_WriteFrame(&sg_sFrame);
+			// Only increment frame counter if we successfully wrote to SD
+			// Frame counter tracks frames on SD card, not frames in buffer
+			if (bWriteSuccess && sg_bSDCardReady && sg_bSDWriteEnabled)
+			{
+				FrameCounter_Increment();
+				sg_sFrame.m.frameCounter = FrameCounter_Get();
+			}
+
+			sg_bSDCardReady = bWriteSuccess;
+		}
+
+		// Now advance to next slot (may wrap to 0)
+		sg_sFrame.m.currentIndex = (sg_sFrame.m.currentIndex + 1) % sg_sFrame.m.nstrings;
 	}
 
 	// Don't send unsolicited status - Pack Controller will request when needed

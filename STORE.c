@@ -68,9 +68,7 @@ bool STORE_Init(void) {
 	return true;
 }
 
-bool STORE_WriteFrame(volatile FrameData* frame) {
-	uint32_t bytesToWrite;
-	uint32_t bytesWritten = 0;
+bool STORE_WriteFrame(volatile FrameData* frame, bool bSDCardReady, bool bSDWriteEnabled) {
 	uint32_t currentOffset = 0;
 	uint32_t sectorsToWrite;
 
@@ -79,24 +77,33 @@ bool STORE_WriteFrame(volatile FrameData* frame) {
 		return false;
 	}
 
-	// Copy ENTIRE frame data to our buffer (always 1024 bytes)
-	// This ensures frameBuffer contains complete frame for CAN transfer
+	// ALWAYS copy frame data to frameBuffer (needed for CAN frame transfer)
+	// This ensures frameBuffer contains complete frame regardless of SD write status
 	memcpy(frameBuffer, (const void*)frame, FRAME_BUFFER_SIZE);
-	
+
+	// Only write to SD card if flags permit
+	if (!bSDCardReady || !bSDWriteEnabled) {
+		return true;  // Frame copied to buffer, SD write skipped
+	}
+
 	// Calculate how many complete sectors we need to write
 	sectorsToWrite = SECTORS_PER_FRAME;
-	
-	// Write all sectors
+
+	// Write all sectors to SD card
 	while(sectorsToWrite > 0) {
 		if(!SDWrite(currentSector, frameBuffer + currentOffset, 1)) {
-			return false;
+			return false;  // SD write failed
 		}
 		currentSector++;
 		currentOffset += SECTOR_SIZE;
 		sectorsToWrite--;
 	}
-	
-	return true;
+
+	// Frame successfully written to SD - this is now a permanent frame
+	// Note: Frame counter is incremented by caller BEFORE calling this function
+	// and is already updated in the frame metadata
+
+	return true;  // Frame copied and written to SD
 }
 
 bool STORE_StartNewSession(void) {

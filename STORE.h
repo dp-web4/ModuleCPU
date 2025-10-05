@@ -162,7 +162,7 @@ STATIC_ASSERT(sizeof(FrameData) == FRAME_BUFFER_SIZE, frame_size_mismatch);
 
 // Function prototypes
 bool STORE_Init(void);
-bool STORE_WriteFrame(volatile FrameData* frame);
+bool STORE_WriteFrame(volatile FrameData* frame, bool bSDCardReady, bool bSDWriteEnabled);
 bool STORE_StartNewSession(void);
 bool STORE_EndSession(void);
 bool STORE_GetSessionCount(uint32_t* count);
