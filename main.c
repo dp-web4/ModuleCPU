@@ -1242,9 +1242,16 @@ void CANReceiveCallback(ECANMessageType eType, uint8_t* pu8Data, uint8_t u8DataL
 		}
 		else
 		{
-			// TODO: Retrieve frame from SD card by frame counter
-			// For now, use frame buffer
-			sg_pFrameToTransfer = (volatile FrameData*)STORE_GetFrameBuffer();
+			// Read specific frame from SD card by frame counter
+			if (STORE_ReadFrameByCounter(requestedFrame))
+			{
+				sg_pFrameToTransfer = (volatile FrameData*)STORE_GetFrameBuffer();
+			}
+			else
+			{
+				// Failed to read frame - ignore request
+				return;
+			}
 		}
 
 		// Initiate frame transfer

@@ -106,6 +106,20 @@ bool STORE_WriteFrame(volatile FrameData* frame, bool bSDCardReady, bool bSDWrit
 	return true;  // Frame copied and written to SD
 }
 
+bool STORE_ReadFrameByCounter(uint32_t frameCounter) {
+	// Frame counter directly maps to SD sector address
+	// Each frame is 2 sectors (SECTORS_PER_FRAME)
+	// Frame N is at sector (N * SECTORS_PER_FRAME)
+	uint32_t startSector = frameCounter * SECTORS_PER_FRAME;
+
+	// Read the complete frame (2 sectors) into frameBuffer
+	if (!SDRead(startSector, frameBuffer, SECTORS_PER_FRAME)) {
+		return false;  // SD read failed
+	}
+
+	return true;  // Frame loaded into frameBuffer
+}
+
 bool STORE_StartNewSession(void) {
 	// Update session info
 	gState.sessionCount++;
