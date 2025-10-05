@@ -67,10 +67,10 @@ typedef struct __attribute__((aligned(4))) {
 	uint16_t u16minCurrent;
 	uint16_t u16avgCurrent;
 	uint8_t sg_u8CurrentBufferIndex;
-	// these are used for calculations and reality checks, not actually reported
-	int32_t sg_i32VoltageStringMin;  // in millivolts
-	int32_t sg_i32VoltageStringMax;  // in millivolts
-	int16_t sg_i16VoltageStringPerADC;  // in ADC_VOLT_FRACTION fractions of millivolts
+	// ADC calibration parameters (calculated constants, not measured values)
+	int32_t sg_i32VoltageStringMin;  // ADC range floor (2.25V/cell × cell count) in millivolts
+	int32_t sg_i32VoltageStringMax;  // ADC range ceiling (4.5V/cell × cell count) in millivolts
+	int16_t sg_i16VoltageStringPerADC;  // ADC scaling factor in ADC_VOLT_FRACTION (1/128) fractions of millivolts
 
 //	frame variables, reset after frame write
 	bool bDischargeOn;
