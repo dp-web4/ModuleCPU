@@ -306,6 +306,34 @@ namespace EEPROMEditor
             };
             tab.Controls.Add(txtCurrentPosition);
 
+            // Set counter value controls
+            var lblSetCounter = new Label
+            {
+                Text = "Set Counter Value:",
+                Location = new Point(520, 20),
+                Size = new Size(120, 20)
+            };
+            tab.Controls.Add(lblSetCounter);
+
+            var numSetCounter = new NumericUpDown
+            {
+                Location = new Point(650, 20),
+                Size = new Size(100, 20),
+                Minimum = 0,
+                Maximum = uint.MaxValue,
+                Value = 0
+            };
+            tab.Controls.Add(numSetCounter);
+
+            var btnSetCounter = new Button
+            {
+                Text = "Set",
+                Location = new Point(760, 18),
+                Size = new Size(50, 24)
+            };
+            btnSetCounter.Click += (s, e) => SetCounterValue((uint)numSetCounter.Value);
+            tab.Controls.Add(btnSetCounter);
+
             // DataGridView for all counter positions
             dgvFrameCounters = new DataGridView
             {
@@ -558,6 +586,7 @@ namespace EEPROMEditor
 
             uint maxCounter = 0;
             int maxPosition = -1;
+            bool foundValid = false;
 
             for (int pos = 0; pos < COUNTER_POSITIONS; pos++)
             {
@@ -574,10 +603,11 @@ namespace EEPROMEditor
                 {
                     status = "Unprogrammed/Invalid";
                 }
-                else if (value > maxCounter && value != 0xFFFFFFFF)
+                else if (!foundValid || value > maxCounter)
                 {
                     maxCounter = value;
                     maxPosition = pos;
+                    foundValid = true;
                     status = "← Current (highest value)";
                 }
 
@@ -602,6 +632,50 @@ namespace EEPROMEditor
                 txtCurrentCounter.Text = "None found";
                 txtCurrentPosition.Text = "N/A";
             }
+        }
+
+        private void SetCounterValue(uint newValue)
+        {
+            // Find current position (same logic as RefreshFrameCounterView)
+            uint maxCounter = 0;
+            int maxPosition = -1;
+            bool foundValid = false;
+
+            for (int pos = 0; pos < COUNTER_POSITIONS; pos++)
+            {
+                int addr = EEPROM_FRAME_COUNTER_BASE + (pos * BYTES_PER_COUNTER);
+                uint value = (uint)eepromData[addr] << 24;
+                value |= (uint)eepromData[addr + 1] << 16;
+                value |= (uint)eepromData[addr + 2] << 8;
+                value |= (uint)eepromData[addr + 3];
+
+                if (value != 0xFFFFFFFF && (!foundValid || value > maxCounter))
+                {
+                    maxCounter = value;
+                    maxPosition = pos;
+                    foundValid = true;
+                }
+            }
+
+            // If no valid position found, use position 0
+            if (maxPosition < 0)
+            {
+                maxPosition = 0;
+            }
+
+            // Write new value at current position (MSB first)
+            int writeAddr = EEPROM_FRAME_COUNTER_BASE + (maxPosition * BYTES_PER_COUNTER);
+            eepromData[writeAddr] = (byte)(newValue >> 24);
+            eepromData[writeAddr + 1] = (byte)(newValue >> 16);
+            eepromData[writeAddr + 2] = (byte)(newValue >> 8);
+            eepromData[writeAddr + 3] = (byte)(newValue);
+
+            // Mark as modified and refresh the display
+            MarkAsModified();
+            RefreshView_Click(null, null);
+
+            MessageBox.Show(string.Format("Set frame counter to {0} at position {1}", newValue, maxPosition),
+                          "Counter Updated", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void RefreshHexView()
