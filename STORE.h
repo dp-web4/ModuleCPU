@@ -59,8 +59,8 @@ typedef struct __attribute__((aligned(4))) {
 
 // session variables, survive frame write
 	uint8_t sg_u8WDTCount;  // number of WDT resets in current session
-	uint8_t sg_u8CellCPUCountFewest;   // for the session
-	uint8_t sg_u8CellCPUCountMost;     // for the session
+	uint8_t sg_u8CellCPUCountFewest;   // for the frame (min across all string readings in frame)
+	uint8_t sg_u8CellCPUCountMost;     // for the frame (max across all string readings in frame)
 	uint8_t sg_u8CellCountExpected;
 
 	uint16_t u16maxCurrent;  // session current is in units of 0.02A relative to CURRENT_FLOOR	-655.36

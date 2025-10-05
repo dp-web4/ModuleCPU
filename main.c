@@ -2379,6 +2379,11 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 			}
 
 			sg_bSDCardReady = bWriteSuccess;
+
+			// Reset per-frame statistics for new frame
+			// Min/max cell count tracks range within this frame's string readings
+			sg_sFrame.m.sg_u8CellCPUCountFewest = 0xff;
+			sg_sFrame.m.sg_u8CellCPUCountMost = 0;
 		}
 
 		// Now advance to next slot (may wrap to 0)
