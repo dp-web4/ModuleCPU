@@ -32,9 +32,17 @@ typedef struct __attribute__((aligned(4))) {
 } GlobalState;
 
 // Cell data structure - MUST BE 4-BYTE ALIGNED FOR 32-BIT XFERS
+// Contains RAW data from CellCPU in native format (not converted)
 typedef struct __attribute__((aligned(4))) {
-	uint16_t voltage;
-	int16_t temperature;
+	uint16_t voltage;       // RAW 10-bit ADC value from CellCPU (0-1023)
+	                        // Requires conversion: see CellDataConvertVoltage() in main.c
+	                        // Formula: (adc_value / 1024) * VREF / VOLTAGE_SCALE * CAL_FACTOR
+	int16_t temperature;    // RAW MCP9843 format from CellCPU (signed 8.4 fixed point)
+	                        // Bits 0-3: 16ths of degree C (fractional)
+	                        // Bits 4-11: Whole degrees C
+	                        // Bit 12: Sign bit (0=positive, 1=negative)
+	                        // Bit 15: I2C status (0x8000 = MSG_CELL_TEMP_I2C_OK)
+	                        // Requires conversion: see CellDataConvertTemperature() in main.c
 } CellData;
 
 // Invalid cell markers - indicates cell didn't report in this reading
@@ -85,14 +93,15 @@ typedef struct __attribute__((aligned(4))) {
 	uint8_t sg_u8LastCompleteCellCount;  // Cell count from last complete frame (for MODULE_DETAIL responses)
 
 // processed data, calculated at start of each WRITE frame
+// NOTE: These statistics contain CONVERTED values (not raw CellData format)
 	uint16_t u16frameCurrent;
-	int16_t sg_s16HighestCellTemp;	//  updated after whole string is processed
-	int16_t sg_s16LowestCellTemp;   //  updated after whole string is processed
-	int16_t sg_s16AverageCellTemp;	//  updated after whole string is processed
-	uint16_t sg_u16HighestCellVoltage;  // in millivolts updated after whole string is processed
-	uint16_t sg_u16LowestCellVoltage;  // in millivolts updated after whole string is processed
-	uint16_t sg_u16AverageCellVoltage;  // in millivolts updated after whole string is processed
-	uint32_t sg_u32CellVoltageTotal;	// All cell CPU voltages added up, in millivolts updated after whole string is processed
+	int16_t sg_s16HighestCellTemp;	//  CONVERTED: 100ths of °C with TEMPERATURE_BASE offset (5535 = 0°C)
+	int16_t sg_s16LowestCellTemp;   //  CONVERTED: 100ths of °C with TEMPERATURE_BASE offset (5535 = 0°C)
+	int16_t sg_s16AverageCellTemp;	//  CONVERTED: 100ths of °C with TEMPERATURE_BASE offset (5535 = 0°C)
+	uint16_t sg_u16HighestCellVoltage;  // CONVERTED: in millivolts (e.g., 3450 = 3.45V)
+	uint16_t sg_u16LowestCellVoltage;   // CONVERTED: in millivolts (e.g., 3450 = 3.45V)
+	uint16_t sg_u16AverageCellVoltage;  // CONVERTED: in millivolts (e.g., 3450 = 3.45V)
+	uint32_t sg_u32CellVoltageTotal;	// CONVERTED: All cell voltages added up, in millivolts
 
 	int32_t sg_i32VoltageStringTotal;  // in 15mv increments, from ADC
 
@@ -108,8 +117,11 @@ typedef struct __attribute__((aligned(4))) {
 
 // Frame data structure - MUST BE 4-BYTE ALIGNED FOR 32-BIT XFERS
 typedef struct __attribute__((aligned(4))) {
-	FrameMetadata m;  // All metadata fields
-	uint8_t c[1024 - sizeof(FrameMetadata)];  // Flexible buffer for cell data
+	FrameMetadata m;  // All metadata fields (statistics are CONVERTED values)
+	uint8_t c[1024 - sizeof(FrameMetadata)];  // Circular buffer containing RAW CellData structures
+	                                          // Cell data stored at offset m.cellBufferStart from frame start
+	                                          // Contains m.readingCount string readings, each with
+	                                          // m.sg_u8CellCountExpected cells in RAW format (unconverted)
 } FrameData;
 
 // Helper functions for accessing cell data in the buffer
