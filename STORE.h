@@ -53,7 +53,7 @@ typedef struct
 
 // Frame metadata structure - contains all the control and status fields
 typedef struct __attribute__((aligned(4))) {
-	uint32_t validSig;  // if != FRAME_VALID_SIG then frame is not valid (was 0xBA77DA7A, now 0x0000BA77)
+	uint16_t validSig;  // if != FRAME_VALID_SIG then frame is not valid (0xBA77)
 	uint8_t version;    // Frame format version (for future compatibility)
 	uint8_t cellBufferStart;  // Offset from start of frame to cell data buffer (4-byte aligned, max 255)
 	uint16_t frameBytes;  // actual number of bytes per frame, for diagnostics
