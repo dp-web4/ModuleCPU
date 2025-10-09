@@ -90,6 +90,7 @@ extern void DebugGPIOToggle( void );
 
 extern uint16_t PlatformGetSendData( bool bUpdateBalanceStatus );
 extern void WatchdogReset( void );
+extern void SetSDBusy( bool bBusy );
 
 extern void vUARTRXStart(void);
 extern void vUARTRXEnd(void);

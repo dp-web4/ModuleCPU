@@ -261,6 +261,7 @@ volatile static uint8_t __attribute__((section(".noinit"))) sg_u8SequentailCellC
 
 static volatile bool __attribute__((section(".noinit"))) sg_bSDCardReady;
 static volatile bool __attribute__((section(".noinit"))) sg_bSDWriteEnabled;  // Flag to control SD writes based on state
+static volatile bool __attribute__((section(".noinit"))) sg_bSDBusy;  // Flag indicating SD card is currently being accessed (survives WDT reset for stuck SPI detection)
 
 // Frame transfer state machine
 typedef enum
@@ -822,6 +823,10 @@ static void WDTSetLeash( uint8_t u8Leash, eWDTstatus eStatus)
 // Watchdog timer interrupt
 ISR(WDT_vect, ISR_BLOCK)
 {
+	// TODO: Check sg_bSDBusy flag to detect if watchdog fired during stuck SPI operation
+	// If sg_bSDBusy is true after WDT reset, we were stuck in SD read/write
+	// Can log this condition or take recovery action (reinit SPI, mark SD as failed, etc.)
+
 	MBASSERT(0);
 }
 
@@ -830,6 +835,12 @@ static void ModuleControllerStateSet( EModuleControllerState eNext )
 	if(eNext < EMODSTATE_COUNT)
 	{
 		sg_eModuleControllerStateTarget = eNext;
+
+		// Disable SD writes when state transition is pending to prevent SD corruption during relay switching
+		if (sg_eModuleControllerStateTarget != sg_eModuleControllerStateCurrent)
+		{
+			sg_bSDWriteEnabled = false;
+		}
 	}
 }
 
@@ -843,6 +854,12 @@ static void ModuleControllerStateSetMax( EModuleControllerState eNext )
 		if (sg_eModuleControllerStateCurrent > eNext) // we are in a higher state than allowed
 		{
 			sg_eModuleControllerStateTarget = eNext;
+
+			// Disable SD writes when state transition is pending to prevent SD corruption during relay switching
+			if (sg_eModuleControllerStateTarget != sg_eModuleControllerStateCurrent)
+			{
+				sg_bSDWriteEnabled = false;
+			}
 		}
 	}
 }
@@ -850,13 +867,22 @@ static void ModuleControllerStateSetMax( EModuleControllerState eNext )
 static void ModuleControllerStateHandle( void )
 {
 	EModuleControllerState eNext = sg_eModuleControllerStateTarget;
-	
-#ifndef STATE_CYCLE	
+
+#ifndef STATE_CYCLE
 	if ((eNext > sg_eModuleControllerStateMax) || (sg_eModuleControllerStateCurrent > sg_eModuleControllerStateMax) )  // technically should not occur but just in case
 	{
 		eNext = sg_eModuleControllerStateMax;
 	}
-#endif	
+#endif
+
+	// Don't transition states if SD card is currently busy (read or write in progress)
+	// Prevents relay switching EMI from corrupting active SPI transactions
+	if (sg_bSDBusy)
+	{
+		// SD card operation in progress - defer state transition
+		return;
+	}
+
 	// see if we need to transition
 	if ( eNext != sg_eModuleControllerStateCurrent)
 	{
@@ -1088,6 +1114,12 @@ static void ModuleControllerStateHandle( void )
 		SendModuleControllerStatus();
 	}
 
+}
+
+// Set SD busy flag to prevent state transitions during SD card access
+void SetSDBusy(bool bBusy)
+{
+	sg_bSDBusy = bBusy;
 }
 
 // Called when transitioning FROM OFF state to any other state
@@ -2543,6 +2575,8 @@ int main(void)
 	
 	// Always disable the watchdog on startup for safety (see datasheet)
 	WatchdogOff();
+	// Stop all interrupts
+	cli();
 	
 	// Enable FET and Relay enable outputs
 	FET_EN_CONFIGURE();  // DO THE FET FIRST
@@ -2604,8 +2638,6 @@ int main(void)
 		{
 			// Power on reset
 		}
-		// Stop all interrupts
-		cli();
 		// Set the sysclock to 8 MHz
 		// *dp some of these may also need to be done on WDT
 		SetSysclock();
@@ -2616,9 +2648,11 @@ int main(void)
 #ifndef STATE_CYCLE		// don't attempt SD when cycling
 		sg_bSDCardReady = STORE_Init();
 		sg_bSDWriteEnabled = false;  // Start with SD writes disabled (module starts in OFF state)
+		sg_bSDBusy = false;  // Initialize SD busy flag (can be set if WDT reset during SD operation)
 #else
 		sg_bSDCardReady = false;
 		sg_bSDWriteEnabled = false;
+		sg_bSDBusy = false;
 		sg_eStateCycle = EMODSTATE_OFF;
 		sg_u8StateCounter = 0;
 #endif
@@ -2638,7 +2672,16 @@ int main(void)
 		DDR_5V_DET &= (uint8_t) ~(1 << PIN_5V_DET);
 		// And PIN_5V_DET pullup
 		PORT_5V_DET |= (1 << PIN_5V_DET);
-	
+
+		// Ensure SPI is routed to Port B (not Port D) - clear SPIPS bit
+		// This prevents SPI peripheral from interfering with PD2/PD3/PD4
+		MCUCR &= (uint8_t) ~(1 << SPIPS);
+
+		// Enable pullups on debug/SPI pins (PD2=MISO, PD3=MOSI, PD4=SCK in alternate mode)
+		// Prevents floating inputs from triggering spurious interrupts when debug cable disconnected
+		DDRD &= (uint8_t) ~((1 << PORTD2) | (1 << PORTD3) | (1 << PORTD4));  // Ensure inputs
+		PORTD |= (1 << PORTD2) | (1 << PORTD3) | (1 << PORTD4);  // Enable pullups
+
 		// Clear pin change interrupt flag by writing a one
 		PCIFR = (1 << PCIF0);			// Bank A flag
 		PCIFR = (1 << PCIF1);			// Bank B flag

@@ -22,6 +22,13 @@ static bool writeGlobalState(void) {
 }
 
 static bool updateSessionMap(void) {
+
+	// Global state now tracked in EEPROM (frame counter, etc.)
+	// SD card no longer used for global state
+	// TODO: Save key metrics to EEPROM here if needed
+	return true;
+
+/*	
 	uint32_t mapSector = gState.activeSessionMapSector;
 	uint32_t mapOffset = gState.activeSessionMapOffset;
 
@@ -44,13 +51,18 @@ static bool updateSessionMap(void) {
 	}
 
 	return writeGlobalState();
+	*/
 }
 
 bool STORE_Init(void) {
 	if (!SDInit()) {
 		return false;
 	}
-
+	// Global state now tracked in EEPROM (frame counter, etc.)
+	// SD card no longer used for global state
+	// TODO: Save key metrics to EEPROM here if needed
+	return true;
+/*
 	if (!readGlobalState()) {
 		// Initialize global state if it doesn't exist
 		memset(&gState, 0, sizeof(GlobalState));
@@ -66,6 +78,7 @@ bool STORE_Init(void) {
 
 	currentSector = gState.newSessionSector;
 	return true;
+*/
 }
 
 bool STORE_WriteFrame(volatile FrameData* frame, bool bSDCardReady, bool bSDWriteEnabled) {
@@ -86,18 +99,25 @@ bool STORE_WriteFrame(volatile FrameData* frame, bool bSDCardReady, bool bSDWrit
 		return true;  // Frame copied to buffer, SD write skipped
 	}
 
+	// Set SD busy flag to prevent state transitions during SD write
+	SetSDBusy(true);
+
 	// Calculate how many complete sectors we need to write
 	sectorsToWrite = SECTORS_PER_FRAME;
 
 	// Write all sectors to SD card
 	while(sectorsToWrite > 0) {
 		if(!SDWrite(currentSector, frameBuffer + currentOffset, 1)) {
+			SetSDBusy(false);  // Clear busy flag before returning on error
 			return false;  // SD write failed
 		}
 		currentSector++;
 		currentOffset += SECTOR_SIZE;
 		sectorsToWrite--;
 	}
+
+	// Clear SD busy flag - operation complete
+	SetSDBusy(false);
 
 	// Frame successfully written to SD - this is now a permanent frame
 	// Note: Frame counter is incremented by caller BEFORE calling this function
@@ -112,10 +132,17 @@ bool STORE_ReadFrameByCounter(uint32_t frameCounter) {
 	// Frame N is at sector (N * SECTORS_PER_FRAME)
 	uint32_t startSector = frameCounter * SECTORS_PER_FRAME;
 
+	// Set SD busy flag to prevent state transitions during SD read
+	SetSDBusy(true);
+
 	// Read the complete frame (2 sectors) into frameBuffer
 	if (!SDRead(startSector, frameBuffer, SECTORS_PER_FRAME)) {
+		SetSDBusy(false);  // Clear busy flag before returning on error
 		return false;  // SD read failed
 	}
+
+	// Clear SD busy flag - operation complete
+	SetSDBusy(false);
 
 	return true;  // Frame loaded into frameBuffer
 }
