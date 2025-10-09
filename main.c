@@ -562,8 +562,12 @@ static void CellCountExpectedSet(uint8_t u8CellCountExpected)
 	// Each cell = 4 bytes (2 bytes voltage + 2 bytes temperature)
 	uint16_t bytes_per_string = u8CellCountExpected * sizeof(CellData);
 
+	// Calculate actual cell buffer size based on offset
+	// Total frame is 1024 bytes, cell buffer starts at cellBufferStart offset
+	uint16_t cellBufferSize = FRAME_BUFFER_SIZE - sg_sFrame.m.cellBufferStart;
+
 	if (bytes_per_string > 0) {
-		sg_sFrame.m.nstrings = FRAME_CELLBUFFER_SIZE / bytes_per_string;
+		sg_sFrame.m.nstrings = cellBufferSize / bytes_per_string;
 
 		// Ensure at least 1 string
 		if (sg_sFrame.m.nstrings == 0) {
@@ -2403,6 +2407,14 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 			memset(&sg_sFrame,0,sizeof(sg_sFrame)); // set all to 0
 			sg_sFrame.m.frameBytes = sizeof(sg_sFrame);
 			sg_sFrame.m.validSig = FRAME_VALID_SIG;
+			sg_sFrame.m.version = FRAME_VERSION;
+
+			// Calculate cell buffer start offset (4-byte aligned)
+			// This is the offset from the start of the frame to where cell data begins
+			uint16_t metadataSize = sizeof(FrameMetadata);
+			// Round up to next 4-byte boundary
+			sg_sFrame.m.cellBufferStart = (uint8_t)((metadataSize + 3) & ~3);
+
 			sg_sFrame.m.moduleUniqueId = ModuleControllerGetUniqueID();
 			sg_sFrame.m.sg_u8CellFirstI2CError = 0xff;
 			sg_sFrame.m.sg_u8CellCPUCountFewest = 0xff;

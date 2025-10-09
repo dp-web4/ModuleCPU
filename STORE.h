@@ -48,11 +48,14 @@ typedef struct
 	uint16_t u16Reading;
 } SADCReading;
 
-#define FRAME_VALID_SIG 0xBA77DA7A
+#define FRAME_VALID_SIG 0xBA77
+#define FRAME_VERSION 1  // Frame format version number
 
 // Frame metadata structure - contains all the control and status fields
 typedef struct __attribute__((aligned(4))) {
-	uint32_t validSig;  // if != FRAME_VALID_SIG then frame is not valid
+	uint32_t validSig;  // if != FRAME_VALID_SIG then frame is not valid (was 0xBA77DA7A, now 0x0000BA77)
+	uint8_t version;    // Frame format version (for future compatibility)
+	uint8_t cellBufferStart;  // Offset from start of frame to cell data buffer (4-byte aligned, max 255)
 	uint16_t frameBytes;  // actual number of bytes per frame, for diagnostics
 	uint64_t timestamp;
 	uint32_t moduleUniqueId;  // unique ID for this module (from EEPROM)
