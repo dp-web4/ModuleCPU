@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "Modbatt_Footprints")(type "KiCad")(uri "${KIPRJMOD}/../../Common_Libraries/footprints.pretty")(options "")(descr "Common Modbatt footprints"))
+)
