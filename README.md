@@ -4,14 +4,14 @@
 
 ## Overview
 
-ModuleCPU is the middle-tier controller in ModBatt's hierarchical battery management system, coordinating up to 94 individual CellCPUs while reporting aggregated data to the Pack Controller. It demonstrates how distributed intelligence principles can be applied to embedded battery management at the module scale.
+ModuleCPU is the middle-tier controller in ModBatt's hierarchical battery management system, coordinating up to 128 individual CellCPUs while reporting aggregated data to the Pack Controller. It demonstrates how distributed intelligence principles can be applied to embedded battery management at the module scale.
 
 **Implementation Status**: ✅ **Production-ready** - Complete firmware with CAN bus communication, VUART cell management, and hierarchical coordination
 
 ### Quick Facts
 
 - **Target Platform**: ATmega64M1 microcontroller (8-bit AVR with CAN)
-- **Manages**: Up to 94 CellCPUs via Virtual UART daisy-chain
+- **Manages**: Up to 128 CellCPUs via Virtual UART daisy-chain
 - **Uplink**: CAN 2.0B bus to Pack Controller (250kbps)
 - **Features**: Dual-phase operation, RTC timestamping, robust error handling
 - **Role**: Middle management - aggregates cell data, coordinates without micromanaging
@@ -51,7 +51,7 @@ See [SYNCHRONISM_PRINCIPLES.md](SYNCHRONISM_PRINCIPLES.md) for architectural pat
 ## Key Features
 
 ### 🔋 Cell Management
-- **Capacity**: Manages up to 94 CellCPUs in daisy-chain topology
+- **Capacity**: Manages up to 128 CellCPUs in daisy-chain topology
 - **Communication**: Virtual UART at 20kbps for cell polling
 - **Monitoring**: Aggregates temperature, voltage, and status from all cells
 - **Coordination**: Enables balancing, tracks cell health, detects faults
@@ -98,7 +98,7 @@ Vehicle Control Unit (VCU)
     ↓ CAN Bus
 Pack Controller (STM32WB55)
     ↓ CAN Bus (250kbps, extended frames)
-ModuleCPU (ATmega64M1) ←─→ 94 × CellCPU (ATtiny45)
+ModuleCPU (ATmega64M1) ←─→ 128 × CellCPU (ATtiny45)
     ↓ Virtual UART (20kbps)     ↓
 Battery Module             Li-ion Cells
 ```

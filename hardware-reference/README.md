@@ -136,7 +136,7 @@ You MUST obtain a commercial hardware license from Modular Battery Technologies,
 
 These reference designs demonstrate:
 
-- **Module Controller**: ATmega64M1-based coordinator managing up to 94 cells
+- **Module Controller**: ATmega64M1-based coordinator managing up to 128 cells
 - **Virtual UART Interface**: Software serial communication to cell controllers (20kbps)
 - **CAN Bus Gateway**: Extended CAN 2.0B interface to Pack Controller (500kbps)
 - **Dual-Phase Operation**: Coordinated data collection and transmission
@@ -144,7 +144,7 @@ These reference designs demonstrate:
 - **High Voltage Interface**: 300V+ pack voltage monitoring and isolation
 - **Relay Control**: Module-level contactor control
 
-**Module Capacity**: Up to 94 cells per module (3008 cells total in 32-module pack)
+**Module Capacity**: Up to 128 cells per module (4096 cells total in 32-module pack)
 
 ---
 
