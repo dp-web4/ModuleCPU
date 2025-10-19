@@ -31,7 +31,6 @@ ModuleCPU is the middle layer of the three-tier battery management hierarchy:
 Module-level coordination (ATmega64M1) managing:
 - Up to 94 CellCPUs via virtual UART
 - CAN bus communication to Pack Controller
-- SD card logging with FatFS
 - Dual-phase operation for data integrity
 - RTC support for timestamping
 
@@ -213,3 +212,39 @@ This ensures CAN communication can recover even if interrupts fail, preventing p
 - Pack controller now properly sends individual deregister messages
 - Module now properly receives and processes them
 - Fixed message format to match other module-specific messages
+
+## Protocol Dependency Resolution (October 18, 2025)
+
+### CAN Protocol Synchronization
+**Problem**: ModuleCPU had hard file system dependency on Pack-Controller-EEPROM for CAN protocol definitions via:
+```c
+#include "../Pack-Controller-EEPROM/protocols/CAN_ID_ALL.h"
+```
+
+This prevented ModuleCPU from being built or released independently.
+
+**Solution**: Protocol Copy with Sync Script
+1. **Local Copy**: Created `protocols/` directory with copies of protocol headers
+2. **Sync Script**: `scripts/sync_protocols.sh` automates protocol synchronization
+3. **Updated Include**: Changed `can_ids.h` to use local `protocols/CAN_ID_ALL.h`
+4. **Documentation**: `protocols/SYNC_NOTICE.md` documents sync procedure
+
+**Protocol Files** (copied from Pack-Controller-EEPROM):
+- `CAN_ID_ALL.h` - All CAN message IDs (module, VCU, diagnostics)
+- `can_frm_mod.h` - Module <-> Pack message structures
+- `README.md` - Protocol documentation
+
+**Sync Procedure** (for future protocol updates):
+```bash
+cd ModuleCPU
+./scripts/sync_protocols.sh
+# Review changes, test build, commit
+```
+
+**Authoritative Source**: `Pack-Controller-EEPROM/protocols/` is the single source of truth.
+All protocol changes must be made there first, then synced to ModuleCPU.
+
+This change enables ModuleCPU to be:
+- Built standalone without Pack-Controller-EEPROM repo present
+- Released as independent open-source repository
+- Kept in sync with protocol updates via simple script

@@ -1,0 +1,20 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$title: Modbatt Device & Telemetry Schema (v0)
+type: object
+properties:
+  device_id: {type: string, description: "Stable LCT-style identity (UUID/DID)"}
+  hardware_rev: {type: string}
+  firmware_rev: {type: string}
+  provenance_hash: {type: string, description: "SHA256 of build manifest"}
+  pack_role: {type: string, enum: ["cell", "module", "pack", "gateway"]}
+  manufactured_at: {type: string, format: date-time}
+  telemetry:
+    type: object
+    properties:
+      voltage_v: {type: number}
+      current_a: {type: number}
+      temperature_c: {type: number}
+      soc_pct: {type: number}
+      soh_pct: {type: number}
+      faults: {type: array, items: {type: string}}
+required: [device_id, hardware_rev, firmware_rev, pack_role, manufactured_at]

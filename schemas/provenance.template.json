@@ -1,0 +1,10 @@
+{
+  "device_id": "urn:lct:modbatt:module:EXAMPLE-1234",
+  "build_sha256": "<populate at build>",
+  "source_commit": "<git sha>",
+  "builder": "CI runner name",
+  "build_time": "2025-10-18T22:08:28.495848Z",
+  "license": "AGPL-3.0-or-later (software)",
+  "hardware_license": "See docs/ModBatt_Product_License.pdf",
+  "contact": "licensing@metalinxx.com"
+}

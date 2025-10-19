@@ -10,8 +10,11 @@
 #ifndef INC_CAN_IDS_H_
 #define INC_CAN_IDS_H_
 
-// Include shared protocol definitions
-#include "../Pack-Controller-EEPROM/protocols/CAN_ID_ALL.h"
+// Include protocol definitions (local copy from Pack-Controller-EEPROM)
+// Authoritative source: https://github.com/dp-web4/Pack-Controller-EEPROM/tree/main/protocols
+// This is a synchronized copy - see protocols/SYNC_NOTICE.md for sync procedure
+// To update: Run scripts/sync_protocols.sh
+#include "protocols/CAN_ID_ALL.h"
 
 // Create PKT_ aliases for ModuleCPU code compatibility
 // Module Controller to Pack Controller

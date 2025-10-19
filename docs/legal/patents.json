@@ -1,0 +1,162 @@
+{
+  "patents": [
+    "11380942",
+    "11469470",
+    "11477027",
+    "11563241",
+    "11575270",
+    "11699817",
+    "11876250",
+    "11936008",
+    "12046722",
+    "12106668",
+    "12136739",
+    "12142737",
+    "12278913",
+    "12405309",
+    "20213723",
+    "20214159",
+    "20214272",
+    "20218008",
+    "20218009",
+    "20222735",
+    "20231708",
+    "21887127",
+    "21916132",
+    "21926016",
+    "22808010"
+  ],
+  "projects_index": {
+    "description": "Active Web4 ecosystem repositories - Q4 2025 comprehensive integration",
+    "note": "All paths are relative to private-context directory. Web4 ecosystem spans multiple implementations with trust-native integration.",
+    "last_updated": "2025-09-15",
+    "ecosystem_status": "Production Ready",
+    "base_path": "..",
+    "projects": [
+      {
+        "name": "private-context",
+        "path": ".",
+        "description": "Web4 Knowledge Base - Comprehensive documentation, standards, and ecosystem coordination hub",
+        "status": "Production",
+        "web4_role": "Documentation and Coordination Center",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "Synchronism",
+        "path": "../Synchronism",
+        "description": "R6 Framework Foundation - Universal philosophy and governance principles for Web4",
+        "status": "Production",
+        "web4_role": "Philosophical Foundation and Live Governance Demonstration",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "ai-dna-discovery",
+        "path": "../ai-dna-discovery",
+        "description": "Cross-model AI consciousness bridges and distributed intelligence research",
+        "status": "Research",
+        "web4_role": "Consciousness Communication Layer",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "CellCPU",
+        "path": "../CellCPU",
+        "description": "Individual battery cell controllers with Web4 nano-LCT identity and ATP energy participation",
+        "status": "Production",
+        "web4_role": "Physical Layer - Hardware Sovereignty Foundation",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "ModuleCPU",
+        "path": "../ModuleCPU",
+        "description": "Module-level battery management with Web4 LCT coordination and trust-based energy allocation",
+        "status": "Production",
+        "web4_role": "Physical Layer - Distributed Energy Management",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "Pack-Controller-EEPROM",
+        "path": "../Pack-Controller-EEPROM",
+        "description": "Pack-level coordination with Web4 memory as temporal sensor and trust relationship management",
+        "status": "Production",
+        "web4_role": "Physical Layer - Meta-sensor and Memory Integration",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "modbatt-CAN",
+        "path": "../modbatt-CAN",
+        "description": "Physical Web4 demonstration - CAN network with LCT entities and ATP energy economics",
+        "status": "Active Development",
+        "web4_role": "Physical Web4 Implementation and Hardware Bridge",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "web4-modbatt-demo",
+        "path": "../web4-modbatt-demo",
+        "description": "Blockchain integration prototype for battery systems with full Web4 sovereignty",
+        "status": "Prototype",
+        "web4_role": "Economic Layer - Physical-Digital Value Bridge",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "HRM",
+        "path": "../HRM",
+        "description": "SAGE H\u2194L Architecture - Edge AI consciousness with 71% ARC-AGI-1 performance using Web4 trust protocols",
+        "status": "Production Ready",
+        "web4_role": "AI Intelligence Layer - Consciousness Pools and Learned Coherence",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "web4",
+        "path": "../web4",
+        "description": "Core Web4 Protocols - LCT, T3/V3, ATP, MRH, SAL, AGY, ACP, ATP-T, Dictionary Entities",
+        "status": "Production",
+        "web4_role": "Core Protocol Suite - Trust-Native Infrastructure Foundation",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "memory",
+        "path": "../memory",
+        "description": "Memory as Temporal Sensor - Fractal lightchain with witness protocols (Compost\u2192Leaf\u2192Stem\u2192Root)",
+        "status": "Production",
+        "web4_role": "Temporal Architecture - Memory as Active Sensing",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "portal",
+        "path": "../portal",
+        "description": "Connection Standards - LCT-based trust bridges and cross-system integration protocols",
+        "status": "Production",
+        "web4_role": "Integration Layer - Universal Connection and Trust Bridge",
+        "auto_pull": true,
+        "auto_push": false
+      },
+      {
+        "name": "ACT",
+        "path": "../ACT",
+        "description": "Accessible Coordination Technology - Natural language interface to Web4 complexity. BLOCKCHAIN OPERATIONAL (Jan 17, 2025) - Cosmos SDK with LCT, ATP/ADP energy, T3/V3 tensors. 75% complete with fractal swarm architecture and blockchain running.",
+        "status": "Active Development - 75% Complete - Blockchain Running",
+        "web4_role": "Human Interface & Economic Layer - Natural Language Bridge + Blockchain Implementation for LCT minting, ATP/ADP energy mechanics, and T3/V3 trust tensors",
+        "blockchain_status": "OPERATIONAL - REST API: http://localhost:1317, Tendermint: http://localhost:26657",
+        "auto_pull": true,
+        "auto_push": false
+      }
+    ],
+    "settings": {
+      "check_interval_seconds": 5,
+      "enable_notifications": true,
+      "log_file": "git-sync-notifications.log",
+      "use_mcp_git": true
+    }
+  }
+}
