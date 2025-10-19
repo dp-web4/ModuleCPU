@@ -186,4 +186,12 @@ Protected by US Patents:
 
 ---
 
+## Related Projects
+
+This repository can be viewed as demonstrating patterns of distributed trust and verifiable provenance in embedded systems.
+
+**Related**: [Web4](https://github.com/dp-web4/web4) (trust architecture) • [Synchronism](https://github.com/dp-web4/Synchronism) (conceptual framing)
+
+---
+
 **Note**: This firmware demonstrates hierarchical coordination patterns in embedded systems. Whether viewed through the lens of Web4/Synchronism concepts or simply as sound battery management architecture, the design patterns are production-tested and functional.
