@@ -624,6 +624,30 @@ typedef enum
 
 static volatile EStringPowerState __attribute__((section(".noinit"))) sg_eStringPowerState;
 
+// Pauses cell string before state transitions to protect cells from relay/FET switching glitches
+// Called immediately before any relay or FET state change
+static void PauseCellString(void)
+{
+	// Reset cell string to INIT state which will depower cells and clear frame data
+	sg_eStringPowerState = ESTRING_INIT;
+
+	// Immediately turn off cell power
+	CELL_POWER_DEASSERT();
+
+	// Wait for power-off to propagate through the daisy chain
+	// Cell string is up to 94 cells, power-down propagates serially
+	Delay((uint32_t) 10 * (uint32_t) 1000);  // 10ms delay
+
+	// Clear frame data
+	FrameInit(false);
+
+	// Gracefully stop any vUART reception in progress
+	vUARTRXReset();
+
+	// The cell string state machine will naturally cycle back to operational
+	// after the state transition completes (INIT->OFF->ON->IGNORE->OPERATIONAL)
+}
+
 // This handles power state changes for the cell string
 static void CellStringPowerStateMachine(void)  // this is called at the start of each READ and WRITE frame
 {
@@ -652,9 +676,9 @@ static void CellStringPowerStateMachine(void)  // this is called at the start of
 			if (0 == sg_u8CellStringPowerTimer)  // wait for the off delay before turning power back on
 			{
 				CELL_POWER_ASSERT();
-				
-				sg_eStringPowerState = ESTRING_IGNORE_FIRST_MESSAGE;  
-				// this will insert at least one frame before an actual read occurs, 
+
+				sg_eStringPowerState = ESTRING_IGNORE_FIRST_MESSAGE;
+				// this will insert at least one frame before an actual read occurs,
 				// which is conditional on ESTRING_OPERATIONAL status
 			}
 			break;
@@ -886,8 +910,13 @@ static void ModuleControllerStateHandle( void )
 	// see if we need to transition
 	if ( eNext != sg_eModuleControllerStateCurrent)
 	{
+		// Pause cell string before any state transition to protect cells from
+		// relay/FET switching glitches. Cells will automatically power back up
+		// after transition completes via the cell string state machine.
+		PauseCellString();
+
 		//  if we go off to lunch due to a switch glitch, watchdog will reset and we will eventually come back here to try the transition again
-		//  if the relays were successfully switched then the net effect second time thru will just be the housekeeping	
+		//  if the relays were successfully switched then the net effect second time thru will just be the housekeeping
 		switch (eNext)  //handle state transitions to target, set via CAN or cycler
 		{
 			case EMODSTATE_INIT:
@@ -898,11 +927,11 @@ static void ModuleControllerStateHandle( void )
 				sg_eModuleControllerStateCurrent = EMODSTATE_OFF;
 				sg_eModuleControllerStateTarget = STATE_DEFAULT;
 				eNext = sg_eModuleControllerStateCurrent;  //fall through to EMODSTATE_OFF
-			
+
 				// handle any recovery and init stuff here
 				// Turn on the ADC, it should only be turned off in sleep mode
 				ADCSetPowerOn();
-			}			
+			}
 			case EMODSTATE_OFF:
 			{
 				// use WDT to recover from glitches on reset/power
