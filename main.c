@@ -96,6 +96,9 @@ static volatile eWDTstatus __attribute__((section(".noinit"))) sg_eWDTCurrentSta
 
 #define FIXED_POINT_SCALE 512  // 2^9, gives us 9 bits of fractional precision  (10 bits overflows)
 
+// Default unique ID for unprogrammed EEPROM
+#define EEPROM_UNPROGRAMMED_DEFAULT_UID		0xBA77BABE
+
 // Pre-calculate these constants:
 #define VOLTAGE_CONVERSION_FACTOR ((uint32_t)((CELL_VREF * 1000.0 / CELL_VOLTAGE_SCALE * CELL_VOLTAGE_CAL * FIXED_POINT_SCALE) + 0.5))
 #define ADC_MAX_VALUE (1 << CELL_VOLTAGE_BITS)
@@ -219,6 +222,7 @@ volatile static uint8_t __attribute__((section(".noinit"))) sg_u8CellStatus;
 
 volatile static bool __attribute__((section(".noinit"))) sg_bSendAnnouncement;			// true If we're sending a module announcement to the pack controller
 volatile static bool __attribute__((section(".noinit"))) sg_bModuleRegistered;			// true If we've received a registration ID from the pack controller
+volatile static bool __attribute__((section(".noinit"))) sg_bEEPROMValid;				// true If EEPROM is programmed (unique ID != 0xFFFFFFFF)
 volatile static bool sg_bAnnouncementPending = false;	// true if we need to send announcement after delay
 volatile static uint8_t sg_u8AnnouncementDelayTicks = 0;	// ticks remaining before sending announcement
 
@@ -395,15 +399,22 @@ void SetSysclock( void )
 }
 
 // Returns unique ID out of the on-chip EEPROM
+// If EEPROM is unprogrammed (0xFFFFFFFF), returns default UID for testing
 uint32_t ModuleControllerGetUniqueID(void)
 {
 	uint32_t u32UniqueID;
-	
+
 	u32UniqueID = EEPROMRead(EEPROM_UNIQUE_ID);
 	u32UniqueID |= ((uint32_t) EEPROMRead(EEPROM_UNIQUE_ID + 0x01) << 8);
 	u32UniqueID |= ((uint32_t) EEPROMRead(EEPROM_UNIQUE_ID + 0x02) << 16);
 	u32UniqueID |= ((uint32_t) EEPROMRead(EEPROM_UNIQUE_ID + 0x03) << 24);
-	
+
+	// If EEPROM is unprogrammed, return default UID for testing/debug
+	if (u32UniqueID == 0xFFFFFFFF)
+	{
+		return EEPROM_UNPROGRAMMED_DEFAULT_UID;
+	}
+
 	return(u32UniqueID);
 }
 
@@ -2297,6 +2308,16 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 			sg_bSendCellCommStatus = true;
 		}
 
+		// If EEPROM is unprogrammed, auto-discover cell count
+		// Update expected count if we receive more cells than expected
+		if (!sg_bEEPROMValid)
+		{
+			if (sg_sFrame.m.sg_u8CellCPUCount > sg_sFrame.m.sg_u8CellCountExpected)
+			{
+				CellCountExpectedSet(sg_sFrame.m.sg_u8CellCPUCount);
+			}
+		}
+
 		// OK, we have at least one. Let's see if the cell count is
 		// reasonable. If it isn't, flag it as a framing error
 		if (sg_sFrame.m.sg_u16BytesReceived & (((1 << BYTES_PER_CELL_SHIFT) - 1))) // number of bytes not evenly divisible by bytes per cell
@@ -2487,7 +2508,17 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 			sg_sFrame.m.u16minCurrent = 0x8000;
 			sg_sFrame.m.u16avgCurrent = 0x8000;
 
-			CellCountExpectedSet(EEPROMRead(EEPROM_EXPECTED_CELL_COUNT));
+			// Load cell count expected from EEPROM, or use default for unprogrammed EEPROM
+			if (sg_bEEPROMValid)
+			{
+				CellCountExpectedSet(EEPROMRead(EEPROM_EXPECTED_CELL_COUNT));
+			}
+			else
+			{
+				// EEPROM unprogrammed - start with 0 cells expected
+				// This will auto-increment as cells are discovered
+				CellCountExpectedSet(0);
+			}
 
 			// Initialize frame counter from EEPROM
 			FrameCounter_Init();
@@ -2731,7 +2762,20 @@ int main(void)
 		sg_bModuleRegistered = false;
 		sg_bIgnoreStatusRequests = false;  // Reset all status flags
 		ModuleControllerStateSet( EMODSTATE_OFF );  // turn off when deregistered
-		
+
+		// Check if EEPROM is programmed (unique ID != 0xFFFFFFFF)
+		uint32_t u32UniqueID = ModuleControllerGetUniqueID();
+		if (u32UniqueID == EEPROM_UNPROGRAMMED_DEFAULT_UID)
+		{
+			// EEPROM is unprogrammed - use defaults for testing
+			sg_bEEPROMValid = false;
+		}
+		else
+		{
+			// EEPROM is programmed - normal operation
+			sg_bEEPROMValid = true;
+		}
+
 		// Initialize critical status and safety flags
 		sg_bSendAnnouncement = true;  // Should announce on startup
 		sg_bPackControllerTimeout = false;
