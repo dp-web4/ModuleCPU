@@ -2308,10 +2308,19 @@ static void CellStringProcess(uint8_t *pu8Response)  // no longer does float cal
 			sg_bSendCellCommStatus = true;
 		}
 
-		// If EEPROM is unprogrammed, auto-discover cell count
+		// Auto-discover cell count if expected count is 0 or unprogrammed
 		// Update expected count if we receive more cells than expected
-		if (!sg_bEEPROMValid)
+		// This works even if unique ID is programmed but cell count is not
+		if (sg_sFrame.m.sg_u8CellCountExpected == 0)
 		{
+			if (sg_sFrame.m.sg_u8CellCPUCount > 0)
+			{
+				CellCountExpectedSet(sg_sFrame.m.sg_u8CellCPUCount);
+			}
+		}
+		else if (!sg_bEEPROMValid)
+		{
+			// EEPROM fully unprogrammed - allow cell count to grow
 			if (sg_sFrame.m.sg_u8CellCPUCount > sg_sFrame.m.sg_u8CellCountExpected)
 			{
 				CellCountExpectedSet(sg_sFrame.m.sg_u8CellCPUCount);
@@ -2508,16 +2517,18 @@ void FrameInit(bool  bFullInit)  // receives true if full init is needed, false 
 			sg_sFrame.m.u16minCurrent = 0x8000;
 			sg_sFrame.m.u16avgCurrent = 0x8000;
 
-			// Load cell count expected from EEPROM, or use default for unprogrammed EEPROM
-			if (sg_bEEPROMValid)
+			// Load cell count expected from EEPROM, or use default for unprogrammed values
+			uint8_t u8CellCountEEPROM = EEPROMRead(EEPROM_EXPECTED_CELL_COUNT);
+			if ((u8CellCountEEPROM == 0xFF) || (u8CellCountEEPROM == 0x00))
 			{
-				CellCountExpectedSet(EEPROMRead(EEPROM_EXPECTED_CELL_COUNT));
+				// Cell count unprogrammed - start with 0 cells expected
+				// This will auto-increment as cells are discovered
+				CellCountExpectedSet(0);
 			}
 			else
 			{
-				// EEPROM unprogrammed - start with 0 cells expected
-				// This will auto-increment as cells are discovered
-				CellCountExpectedSet(0);
+				// Use programmed cell count
+				CellCountExpectedSet(u8CellCountEEPROM);
 			}
 
 			// Initialize frame counter from EEPROM
