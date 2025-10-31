@@ -52,11 +52,17 @@ extern bool CANSendMessageWithSeq( ECANMessageType eType,
 extern void CANPoll( void );
 extern void CANCheckTxStatus( void );
 
+// Main loop processing functions - MUST be called regularly from main loop
+extern void CANProcessQueue( void );    // Process queued RX messages
+extern void CANCheckMOBs( void );       // Reconfigure MOBs if needed
+extern void CANCheckRetry( void );      // Process TX retries
+
 // Diagnostic functions
 extern uint16_t CANGetTxTimeouts( void );
 extern uint16_t CANGetTxErrors( void );
 extern uint16_t CANGetTxOkPolled( void );
 extern uint16_t CANGetBusOffEvents( void );
+extern uint16_t CANGetRxQueueOverflows( void );
 extern uint8_t CANGetTEC( void );
 extern uint8_t CANGetREC( void );
 extern uint8_t CANGetTxOnlyErrorCount( void );

@@ -2827,6 +2827,11 @@ int main(void)
 	while(1)
 	{
 		WatchdogReset();
+
+		// Process queued CAN RX messages (deferred from ISR for reduced interrupt latency)
+		// Call frequently to ensure timely message processing
+		CANProcessQueue();
+
 		if (sg_bNewTick)
 		{
 			sg_bNewTick = false;  // set tru in periodic tick isr, cleared in main loop
@@ -2837,6 +2842,12 @@ int main(void)
 
 			// Check overall CAN health and recover from error states
 			CANCheckHealth();
+
+			// Process TX retries if pending (deferred from ISR)
+			CANCheckRetry();
+
+			// Reconfigure MOBs if needed (deferred from ISR)
+			CANCheckMOBs();
 
 			// Process frame transfer if active
 			ProcessFrameTransfer();

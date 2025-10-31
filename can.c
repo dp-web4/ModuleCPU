@@ -50,6 +50,26 @@ static uint8_t sg_u8BusOffRecoveryDelay = 0;	// Delay counter after bus-off reco
 static uint8_t sg_u8TxOnlyErrorCount = 0;	// Count of consecutive TX-only errors
 static uint8_t sg_u8TxBackoffDelay = 0;	// Adaptive backoff delay for TX errors
 
+// RX Message Queue - moves heavy processing out of ISR to main loop
+#define CAN_RX_QUEUE_SIZE 8
+typedef struct {
+	ECANMessageType eType;
+	uint8_t u8Data[CAN_MAX_MSG_SIZE];
+	uint8_t u8DataLen;
+} CANRxMessage;
+
+static CANRxMessage sg_rxQueue[CAN_RX_QUEUE_SIZE];
+static volatile uint8_t sg_rxQueueHead = 0;
+static volatile uint8_t sg_rxQueueTail = 0;
+static uint16_t sg_u16RxQueueOverflows = 0;	// Diagnostic: queue overflow count
+
+// MOB Reconfiguration Flags - defers MOB setup to main loop
+static volatile bool sg_bMOB0NeedsReconfigure = false;
+static volatile bool sg_bMOB2NeedsReconfigure = false;
+
+// TX Retry Flag - defers retry logic to main loop
+static volatile bool sg_bRetryPending = false;
+
 typedef struct 
 {
 	uint8_t u8Mode;
@@ -589,7 +609,7 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 		{
 			// Clear it
 			CANSTMOB &= ~(1 << RXOK);
-		
+
 			if( sg_pfRXCallback )
 			{
 				ECANMessageType eType;
@@ -597,27 +617,40 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 				uint8_t u8Data[8];
 				uint8_t u8DataLen = CANCDMOB & 0x0f;
 				uint8_t u8Index = 0;
-			
+
 				// Grab the messageID from the identifier registers
 				// TODO: This extraction may be wrong for extended frames
 				// but it worked with the real Pack Controller somehow
 				u16ID = ((uint16_t)CANIDT1) << 3;
 				u16ID |= CANIDT2 >> 5;
-			
+
 				// Pull the data out into a temp buffer
 				while( u8Index < u8DataLen )
 				{
 					u8Data[u8Index] = CANMSG;
 					u8Index++;
 				}
-			
+
 				// Lookup ID to see if it matches one of ours
 				eType = CANLookupCommand( u16ID );
-			
+
 				if( eType != ECANMessageType_MAX )
 				{
-					// Call comamnd handler
-					sg_pfRXCallback( eType, u8Data, u8DataLen );
+					// Queue the message for processing in main loop instead of calling callback in ISR
+					// This dramatically reduces ISR duration and prevents VUART timing interference
+					uint8_t nextHead = (sg_rxQueueHead + 1) % CAN_RX_QUEUE_SIZE;
+					if (nextHead != sg_rxQueueTail)  // Queue not full
+					{
+						sg_rxQueue[sg_rxQueueHead].eType = eType;
+						sg_rxQueue[sg_rxQueueHead].u8DataLen = u8DataLen;
+						memcpy(sg_rxQueue[sg_rxQueueHead].u8Data, u8Data, u8DataLen);
+						sg_rxQueueHead = nextHead;
+					}
+					else
+					{
+						// Queue overflow - message dropped
+						sg_u16RxQueueOverflows++;
+					}
 				}
 			}
 		}
@@ -652,7 +685,7 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 
 		// If TX Error on transmit (collision with another device)
 		// -or- ACK error (nobody listening),
-		// retry send
+		// defer retry to main loop
 		if( CANSTMOB & ((1 << BERR) | (1 << AERR) | (1 << SERR)) )
 		{
 			// Clear it
@@ -660,15 +693,14 @@ void CANMOBInterrupt( uint8_t u8MOBIndex )
 
 			if( sg_u8TransmitAttempts < 20 )
 			{
-				// Retransmit now
-               sg_bInRetransmit = true;  // Set flag before retry
-               CANSendMessageInternal( sg_eLastTXType, sg_u8LastTXData, sg_u8LastTXDataLen, true );
+				// Set flag to retry in main loop (reduces ISR duration)
+				sg_bRetryPending = true;
 			}
 			else
 			{
 				// Retries exhausted.  Give up
 				sg_u8Busy = 0;
-                sg_bInRetransmit = false;
+				sg_bInRetransmit = false;
 			}
 		}
 	}
@@ -691,13 +723,13 @@ ISR(CAN_INT_vect, ISR_BLOCK)
 	 // Check MOB 0 (module-specific RX)
 	 if(sit & (1 << CANMOB_RX_IDX)) {
 		 CANMOBInterrupt(CANMOB_RX_IDX);
-		 CANMOBSet(CANMOB_RX_IDX, &sg_sMOBGenericReceive, NULL, 0);
+		 sg_bMOB0NeedsReconfigure = true;  // Defer MOB reconfiguration to main loop
 	 }
 
 	 // Check MOB 2 (broadcast RX)
 	 if(sit & (1 << 2)) {
 		 CANMOBInterrupt(2);
-		 CANMOBSet(2, &sg_sMOBGenericReceive, NULL, 0);
+		 sg_bMOB2NeedsReconfigure = true;  // Defer MOB reconfiguration to main loop
 	 }
 
 	// Check TX MOB
@@ -771,11 +803,11 @@ ISR(CAN_INT_vect, ISR_BLOCK)
 	{
 		// Clear the interrupt
 		CANGIT = (1 << AERG);
-		
+
 		if( sg_u8TransmitAttempts < 20 )
 		{
-			// Retransmit now
-			CANSendMessageInternal( sg_eLastTXType, sg_u8LastTXData, sg_u8LastTXDataLen, true );
+			// Set flag to retry in main loop (reduces ISR duration)
+			sg_bRetryPending = true;
 		}
 		else
 		{
@@ -1149,5 +1181,61 @@ void CANCheckHealth(void)
 	{
 		CANPAGE = savedMOB;  // Restore MOB
 	}
+}
+
+// Process RX message queue - call from main loop
+// This processes all queued CAN messages by calling the registered callback
+// Moves heavy application processing out of ISR to dramatically reduce interrupt latency
+void CANProcessQueue(void)
+{
+	while (sg_rxQueueTail != sg_rxQueueHead)
+	{
+		// Get message from queue
+		CANRxMessage* msg = &sg_rxQueue[sg_rxQueueTail];
+
+		// Call the registered callback with the queued message
+		if (sg_pfRXCallback)
+		{
+			sg_pfRXCallback(msg->eType, msg->u8Data, msg->u8DataLen);
+		}
+
+		// Advance tail pointer (consume message)
+		sg_rxQueueTail = (sg_rxQueueTail + 1) % CAN_RX_QUEUE_SIZE;
+	}
+}
+
+// Check and reconfigure RX MOBs if needed - call from main loop
+// This defers the heavy MOB reconfiguration work out of ISR
+void CANCheckMOBs(void)
+{
+	if (sg_bMOB0NeedsReconfigure)
+	{
+		CANMOBSet(CANMOB_RX_IDX, &sg_sMOBGenericReceive, NULL, 0);
+		sg_bMOB0NeedsReconfigure = false;
+	}
+
+	if (sg_bMOB2NeedsReconfigure)
+	{
+		CANMOBSet(2, &sg_sMOBGenericReceive, NULL, 0);
+		sg_bMOB2NeedsReconfigure = false;
+	}
+}
+
+// Check and process TX retries if needed - call from main loop
+// This defers TX retry logic out of ISR for reduced interrupt latency
+void CANCheckRetry(void)
+{
+	if (sg_bRetryPending)
+	{
+		sg_bInRetransmit = true;
+		CANSendMessageInternal(sg_eLastTXType, sg_u8LastTXData, sg_u8LastTXDataLen, true);
+		sg_bRetryPending = false;
+	}
+}
+
+// Get RX queue overflow count - diagnostic function
+uint16_t CANGetRxQueueOverflows(void)
+{
+	return sg_u16RxQueueOverflows;
 }
 
