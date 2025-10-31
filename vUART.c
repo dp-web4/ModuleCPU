@@ -48,8 +48,8 @@
 //#define PauseCAN 1  // comment out if not using
 
 // Enable edge-triggered timing correction during VUART reception
-// Comment out to use fixed timing (recommended for now)
-//#define ENABLE_EDGE_SYNC
+// ModuleCPU is receiver-only, so edge sync is appropriate here
+#define ENABLE_EDGE_SYNC
 
 //The subtracted value for next bit time is empirically
 // measured to ensure the per-bit time matches VUART_BIT_TICKS
@@ -57,7 +57,7 @@
 
 // Now using VUART_ISR_OVERHEAD and VUART_SAMPLE_OFFSET from Shared.h
 // Was using 7, now set to 0 in Shared.h for nominal timing experiments
-#define VUART_BIT_TICK_OFFSET VUART_ISR_OVERHEAD  // Alias for compatibility
+#define VUART_BIT_TICK_OFFSET 8
 
 // Uncomment to enable profiler code FOR TESTING ONLY, DO NOT LEAVE ON IN PRODUCTION
 // NOTE: Moved from PC7 to PD5 (PC7 drives flipflop clock on REV E+)
@@ -260,7 +260,8 @@ ISR(INT1_vect, ISR_BLOCK)
 		// Program up the timer to interrupt about 1.5 bit's worth, which
 		// puts it almost in the center of the next bit. The added value 
 
-		TIMER_CHB_INT( VUART_BIT_TICKS + VUART_SAMPLE_OFFSET);  // start bit + sample offset to middle of first data bit
+		TIMER_CHB_INT( VUART_BIT_TICKS + VUART_SAMPLE_OFFSET - VUART_BIT_TICK_OFFSET);  // start bit + sample offset to middle of first data bit
+																						// VUART_BIT_TICK_OFFSET needed for differences in ISR response
 
 #ifdef ENABLE_EDGE_SYNC
 		// Switch to any-edge detection for timing correction

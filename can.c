@@ -14,6 +14,7 @@
 #include "main.h"
 #include "can.h"
 #include "can_ids.h"
+#include "vUART.h"  // For vUARTIsBusy()
 
 #define CAN_DISABLED			(0)
 #define CAN_TXONLY				(1)
@@ -793,6 +794,15 @@ bool CANSendMessage( ECANMessageType eType,
 					 uint8_t* pu8Data,
 					 uint8_t u8DataLen )
 {
+	// VUART timing interference prevention - COMMENTED OUT
+	// While this successfully eliminated scope-visible disruptions to VUART timing,
+	// it severely disrupted CAN communications. Next-gen solution is faster processor.
+	// For now, need to find alternate approach (priority adjustment, shorter ISRs, etc.)
+	// if (vUARTIsBusy())
+	// {
+	//     return(false);
+	// }
+
 	// Don't transmit during bus-off recovery period
 	if (sg_u8BusOffRecoveryDelay > 0)
 	{
@@ -821,6 +831,15 @@ bool CANSendMessageWithSeq( ECANMessageType eType,
 						uint8_t u8DataLen,
 						uint16_t u16SeqNum )
 {
+	// VUART timing interference prevention - COMMENTED OUT
+	// While this successfully eliminated scope-visible disruptions to VUART timing,
+	// it severely disrupted CAN communications. Next-gen solution is faster processor.
+	// For now, need to find alternate approach (priority adjustment, shorter ISRs, etc.)
+	// if (vUARTIsBusy())
+	// {
+	//     return(false);
+	// }
+
 	// Don't transmit during bus-off recovery period
 	if (sg_u8BusOffRecoveryDelay > 0)
 	{
