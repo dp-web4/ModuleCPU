@@ -49,7 +49,7 @@
 
 // Enable edge-triggered timing correction during VUART reception
 // ModuleCPU is receiver-only, so edge sync is appropriate here
-//#define ENABLE_EDGE_SYNC   //TODO this needs fine-tuning, currently pushes next sample to 35us instead of 25, with VUART_SAMPLE_OFFSET 3 and VUART_ISR_OVERHEAD 0
+#define ENABLE_EDGE_SYNC   //TODO this needs fine-tuning, currently pushes next sample to 35us instead of 25, with VUART_SAMPLE_OFFSET 3 and VUART_ISR_OVERHEAD 0
 
 //The subtracted value for next bit time is empirically
 // measured to ensure the per-bit time matches VUART_BIT_TICKS
@@ -253,6 +253,7 @@ static bool sg_bState;
 // Pin change interrupt - detecting start bit OR timing correction edges
 ISR(INT1_vect, ISR_BLOCK)
 {
+	uint8_t currentTimer = TCNT0;  // capture timer asap
 	// Check if this is a start bit or an edge during reception
 	if (sg_eCell_mc_rxState == ESTATE_IDLE || sg_eCell_mc_rxState == ESTATE_NEXT_BYTE)
 	{
@@ -301,7 +302,7 @@ ISR(INT1_vect, ISR_BLOCK)
 		// (we skip bit 0 since we just set up timing)
 
 /*		// Calculate timing error for statistics only
-		uint8_t currentTimer = TCNT0;
+		
 		uint8_t expectedTimer = (uint8_t)(OCR0B - (VUART_BIT_TICKS/2));
 		int8_t timingError = (int8_t)(currentTimer - expectedTimer);
 
@@ -311,7 +312,7 @@ ISR(INT1_vect, ISR_BLOCK)
 */
 		// ALWAYS resync: edge just occurred, so set timer to fire at mid-bit
 		// Use VUART_SAMPLE_OFFSET for consistency with start bit detection
-		OCR0B = (uint8_t)(TCNT0 + VUART_SAMPLE_OFFSET - VUART_BIT_TICK_OFFSET);
+		OCR0B = (uint8_t)(currentTimer + VUART_SAMPLE_OFFSET - 10);  //use captured timer value, correction accounts for timer capture and rewrite
 
 		// Increment correction counter
 		sg_edgeCorrections++;
